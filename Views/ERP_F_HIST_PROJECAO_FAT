@@ -1,0 +1,23 @@
+SELECT a.CF$_DATA_PROJECAO                                                                DATA_PROJECAO,
+       a.CF$_PARAMETRO_PROJECAO                                                           PARAMETRO_PROJECAO,
+       a.CF$_CONTRATO_RECORRENTE                                                          N_CONTRATO,
+       a.CF$_COTACAO_VENDAS                                                               N_COTACAO,
+       a.CF$_ORDEM_VENDA                                                                  ID_OV,
+       a.CF$_OPORTUNIDADE                                                                 ID_OPORTUNIDADE,
+       TRUNC(a.CF$_DATA_FINAL_PLANEJADO)                                                  DATA_FINAL_PLANEJADO,
+       TRUNC(a.CF$_DATA_PROXIMO_FAT)                                                      DATA_PROX_FAT,
+       a.CF$_ID_CLIENTE                                                                   ID_CLIENTE,
+       a.CF$_NOME_CLIENTE                                                                 DESC_CLIENTE,
+       UPPER(a.CF$_TIPO_CLIENTE)                                                          TIPO_PARCEIRO,
+       a.CF$_EMPRESA                                                                      ID_EMPRESA,
+       a.CF$_EMPRESA                                                                      ID_SITE,
+       a.CF$_APR_CUSTO                                                                    ID_CODE_H_APR_CUSTO,
+       UPPER(a.CF$_STATUS_CONTRATO)                                                       STATUS_CONTRATO,
+       UPPER(a.CF$_TIPO_CONTRATO)                                                         TIPO_CONTRATO,
+       (select  REPRESENTATIVE_ID from ifslaf.BUSINESS_REPRESENTATIVE B
+       where IFSLAF.PERSON_INFO_API.Get_Name(B.REPRESENTATIVE_ID) = A.CF$_VENDEDOR AND B.REPRESENTATIVE_ID <> '*')       ID_VENDEDOR,
+       a.CF$_VENDEDOR                                                                     DESC_VENDEDOR,
+       UPPER(a.CF$_VENDEDOR)                                                              MODALIDADE_CONTRATO,
+       a.CF$_VALOR_MENSAL                                                                 VALOR_PROJETADO
+              
+  FROM ifslaf.LAF_HISTORICO_PROJECAO_FAT_CLV a
