@@ -1,0 +1,11 @@
+SELECT A.supplier_id                                          ID_FORNECEDOR,
+       A.NAME                                                 DESC_FORNECEDOR,
+       A.CREATION_DATE                                        DATA_CRIACAO,
+       A.SUPPLIER_CATEGORY                                    CATEGORIA_FORNECEDOR,
+       A.CF$_TOTAL_EVALUATION                                 AVALIACAO_FORNECEDOR,
+       B.buyer_code                                           ID_COMPRADOR_PADRAO,
+       IFSLAF.PURCHASE_BUYER_API.GET_NAME(B.BUYER_CODE)       DESC_COMPRADOR_PADRAO,
+       IFSLAF.SUPPLIER_GROUP_API.GET_DESCRIPTION(B.SUPP_GRP)  GRUPO_ESTATISTICO,
+       B.customer_no                                          ID_CLIENTE
+                
+FROM IFSLAF.SUPPLIER_INFO_GENERAL_CFV A LEFT JOIN IFSLAF.SUPPLIER_ENT B ON A.SUPPLIER_ID = B.supplier_id
