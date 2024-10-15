@@ -1,0 +1,29 @@
+select a.OBJECT_ID                                                                  SERIAL,
+       a.COMPANY||'-'||a.OBJECT_ID                                                  CHAVE_EMPRESA_SERIAL,
+       A.DESCRIPTION                                                                DESC_MATERIAL,
+       A.ACCOUNT                                                                    ID_CONTA_AQUISICAO,
+       IFSLAF.Acquisition_Account_API.Get_Description(A.COMPANY, A.ACCOUNT )        DESC_CONTA_AQUISICAO,
+       A.ACQUISITION_DATE                                                           DATA_AQUISICAO,
+       ADD_MONTHS(A.ACQUISITION_DATE,(to_number(SUBSTR(F.ESTIMATED_LIFE_CL, 1, 2) * 12) + to_number(SUBSTR(F.ESTIMATED_LIFE_CL, 5, 2))))                                                                  DATA_FINAL_DEPRECIACAO,
+       F.ESTIMATED_LIFE_CL                                                          VIDA_ESTIMADA,
+       ADD_MONTHS(A.ACQUISITION_DATE, TABMES.MES)                                   DATA_PROJETADA,
+       E.VALOR_BASE_CONTAB                                                          VALOR_BASE_CONTAB,
+       (E.VALOR_BASE_CONTAB / (to_number(SUBSTR(F.ESTIMATED_LIFE_CL, 1, 2) * 12) + to_number(SUBSTR(F.ESTIMATED_LIFE_CL, 5, 2))) )           VALOR_MENSAL_DEPRECIACAO,
+       E.VALOR_BASE_CONTAB - (TABMES.MES * (E.VALOR_BASE_CONTAB / (to_number(SUBSTR(F.ESTIMATED_LIFE_CL, 1, 2) * 12) + to_number(SUBSTR(F.ESTIMATED_LIFE_CL, 5, 2))) )) VALOR_LIQUIDO_PROJETADO
+
+ 
+
+from ifslaf.FA_OBJECT a 
+LEFT JOIN ifslaf.fa_book_per_object f ON (A.OBJECT_ID = F.OBJECT_ID AND A.COMPANY = F.company) AND f.BOOK_ID = 'CONTABIL'
+CROSS APPLY (SELECT LEVEL MES FROM DUAL CONNECT BY LEVEL <= TRUNC(MONTHS_BETWEEN(TRUNC(ADD_MONTHS(A.ACQUISITION_DATE,(to_number(SUBSTR(F.ESTIMATED_LIFE_CL, 1, 2) * 12) + to_number(SUBSTR(F.ESTIMATED_LIFE_CL, 5, 2)))-1), 'MM'), TRUNC(a.ACQUISITION_DATE, 'MM'))) + 1) TABMES
+OUTER APPLY ( SELECT IFSLAF.Fa_Book_Per_Object_API.Get_Base_Value_Depr_Cl(D.COMPANY,D.BOOK_ID,D.OBJECT_ID,(select to_char(sysdate,'YYYY') from dual), (select to_char(sysdate,'MM') from dual),'FA','WITH_OR_WITHOUT_BOOK') VALOR_BASE_CONTAB,
+            IFSLAF.Fa_Book_Per_Object_API.Get_Net_Value_At_Date(COMPANY, OBJECT_ID, BOOK_ID, (select to_char(sysdate,'YYYY') from dual),(select to_char(sysdate,'MM') from dual), 'FA', (Select trunc(LAST_DAY(SYSDATE)) FROM DUAL)) VALOR_LIQUIDO
+FROM ifslaf.FA_OBJECT_SUM_METHODS2 D
+WHERE D.book_id = 'CONTABIL' 
+AND D.object_id = A.OBJECT_ID
+AND d.company = a.COMPANY
+) E
+where A.STATE = 'Ativo'
+and f.FULLY_DEPRECIATED <> 'TRUE'
+and f.EXCLUDE_FROM_DEPRECIATION = 'FALSE'
+AND F.ESTIMATED_LIFE_CL <> '00y 00m'
