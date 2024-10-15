@@ -1,0 +1,56 @@
+SELECT a.template_id                                                                              ID_MODELO_AUTORIZACAO,
+       A.description                                                                              DESC_MODELO_AUTORIZACAO,
+       A.company                                                                                  ID_EMPRESA,
+       B.route                                                                                    N_ETAPA,
+       B.approval_level                                                                           TIPO_AUTORIZACAO,
+       coalesce(B.authorize_id,d.authorize_id)                                                    ID_AUTORIZADOR,      
+       IFSLAF.PURCHASE_AUTHORIZER_API.Get_User(B.company,coalesce(B.authorize_id,d.authorize_id)) DESC_AUTORIZADOR,
+       B.authorize_group_id                                                                       ID_GRUPO_AUTORIZADOR,
+       IFSLAF.PURCH_AUTHORIZE_GROUP_API.Get_Description(B.company,B.authorize_group_id)           DESC_GRUPO_AUTORIZADOR,
+       C.APPROVAL_RULE                                                                            ID_REGRA_AUTORIZACAO,
+       C.description                                                                              DESC_REGRA_AUTORIZACAO,
+       H.contract                                                                                 ID_SITE,
+       C.TEMP_PRIORITY                                                                            PRIORIDADE,
+       C.state                                                                                    STATUS,
+       C.MIN_AMOUNT                                                                               VALOR_MINIMO,
+       C.MAX_AMOUNT                                                                               VALOR_MAXIMO,
+       c.ORDER_CODE                                                                               COD_ORDEM,
+       c.USE_AMOUNTS_INCL_TAX                                                                     USAR_VALORES_BRUTOS,
+       C.ALLOW_CHANGES_TO_PR                                                                      PERMITIR_ALTERACOES_APOS_AUTORIZACAO,
+       C.ALLOW_CONVERT_TO_RFQ                                                                     PERMITE_CONVERSAO_RFQ,
+       C.AUTH_ROUTING_OPTION                                                                      OPCOES_ROTEIRO_AUTORIZACAO,
+       E.requisitioner_code                                                                       ID_REQUISITANTE,
+       IFSLAF.PURCHASE_REQUISITIONER_API.Get_Requisitioner(E.REQUISITIONER_CODE)                  DESC_REQUISITANTE,
+       F.buyer_code                                                                               ID_COMPRADOR,
+       IFSLAF.Purchase_Buyer_API.Get_Name(F.BUYER_CODE)                                           DESC_COMPRADOR,
+       G.VENDOR_NO                                                                                ID_FORNECEDOR,
+       IFSLAF.SUPPLIER_API.Get_Vendor_Name(G.VENDOR_NO)                                           DESC_FORNECEDOR,                                          
+       IFSLAF.PURCHASE_PART_GROUP_API.Get_Description(I.STAT_GRP)                                 GRUPO_COMPRA,
+       J.CODENO_A                                                                                 ID_CODE_A,
+       J.CODENO_B                                                                                 ID_CODE_B,
+       J.CODENO_C                                                                                 ID_CODE_C,
+       J.CODENO_D                                                                                 ID_CODE_D,
+       J.CODENO_E                                                                                 ID_CODE_E,
+       J.CODENO_F                                                                                 ID_CODE_F,
+       J.CODENO_G                                                                                 ID_CODE_G,
+       J.CODENO_H                                                                                 ID_CODE_H,
+       J.CODENO_I                                                                                 ID_CODE_I,
+       J.CODENO_J                                                                                 ID_CODE_J,
+       M.project_id                                                                               ID_PROJETO,
+       IFSLAF.PROJECT_CATEGORY1_GLOBAL_API.Get_Description(K.CATEGORY1_ID)                        DESC_CAT_1_PROJETO,
+       IFSLAF.PROJECT_CATEGORY2_GLOBAL_API.Get_Description(L.CATEGORY2_ID)                        DESC_CAT_2_PROJETO,
+       TO_DATE(B.objversion,'YYYY/MM/DD HH24:MI:SS')                                              ULT_ATUALIZACAO_MODELO,
+       TO_DATE(C.objversion,'YYYY/MM/DD HH24:MI:SS')                                              ULT_ATUALIZACAO_REGRA
+          
+FROM ifslaf.PUR_APPROVAL_TEMPL a JOIN IFSLAF.PUR_APPROVAL_TEMPL_LINE B ON A.company = B.company AND A.template_id = B.template_id
+JOIN ifslaf.PUR_REQ_APPROVAL_RULE C ON A.company = C.company AND A.template_id = C.template_id 
+LEFT JOIN ifslaf.PURCH_AUTHORIZE_GROUP_LINE d ON a.company = d.company AND b.authorize_group_id = d.authorize_group_id
+LEFT JOIN IFSLAF.PUR_REQ_APPROVAL_RULE_SITE H ON H.approval_rule = C.approval_rule
+LEFT JOIN ifslaf.REQ_RULE_REQUISITIONER e ON e.approval_rule = c.approval_rule
+LEFT JOIN IFSLAF.REQ_RULE_BUYER F ON F.approval_rule = C.approval_rule
+LEFT JOIN IFSLAF.REQ_RULE_SUPPLIER G ON G.approval_rule = C.approval_rule
+LEFT JOIN IFSLAF.REQ_RULE_PURCH_GROUP I ON I.approval_rule = C.approval_rule
+LEFT JOIN IFSLAF.REQ_RULE_PRE_POSTING J ON J.APPROVAL_RULE = C.approval_rule
+LEFT JOIN IFSLAF.REQ_RULE_PROJECT M   ON M.approval_rule = C.approval_rule AND M.company = C.company
+LEFT JOIN IFSLAF.REQ_RULE_PROJ_CAT1 K ON K.approval_rule = C.approval_rule AND K.company = C.company
+LEFT JOIN IFSLAF.REQ_RULE_PROJ_CAT2 L ON L.approval_rule = C.approval_rule AND L.company = C.company
