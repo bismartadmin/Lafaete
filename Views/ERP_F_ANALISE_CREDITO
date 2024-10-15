@@ -1,0 +1,30 @@
+SELECT COALESCE((SELECT B.OPPORTUNITY_NO
+                  FROM IFSLAF.C_RECURRENT_AGREEMENT B
+                 WHERE B.agreement_id = A.CF$_AGREEMENT_ID),
+                (SELECT C.business_opportunity_no
+                   FROM IFSLAF.ORDER_QUOTATION C
+                  WHERE C.quotation_no = A.CF$_QUOTATION_NO))           ID_OPORTUNIDADE,       
+       A.CF$_AGREEMENT_ID                                               N_CONTRATO,
+       A.CF$_AGREEMENT_LINE_NO                                          N_LINHA_CONTRATO,
+       A.CF$_QUOTATION_NO                                               N_COTACAO,
+       A.CF$_CUSTOMER_NO                                                ID_CLIENTE,
+       A.CF$_CUSTOMER_NAME                                              DESC_CLIENTE,
+       A.CF$_PAYMENT_METHOD                                             DESC_FORMA_PAGAMENTO,
+       A.CF$_SALESMAN_CODE                                              DESC_REPRESENTANTE,
+       A.CF$_COMPANY                                                    ID_EMPRESA,
+       A.CF$_CONTRACT                                                   ID_SITE,
+       A.CF$_ANALYSIS_STATUS                                            STATUS_CREDITO,
+       A.CF$_APPROVED_ANALYSIS_CRED                                     RESPOSTA_ANALISE,
+       A.CF$_APPROVAL                                                   APROVADOR_CREDITO,
+       A.CF$_USER_RESPONSE_ANALYSIS                                     ANALISTA_CREDITO,
+       A.CF$_ANALYSIS_REQUEST                                           DATA_REQUISICAO,
+       A.CF$_ANALYSIS_CRED_REQUEST                                      DATA_SOLICITACAO,
+       A.CF$_REPONSE_ANALYSIS_DATE                                      DATA_RESPOSTA,
+       A.CF$_SERASA_ANALYSIS                                            ANALISE_SERASA,
+       A.CF$_SERASA_DATE                                                DATA_SERASA,
+       A.CF$_SERASA_STATUS                                              STATUS_SERASA,
+       a.CF$_MONTHLY_AGRREMENT_PRIC                                     VALOR_MENSAL,
+       A.CF$_TOTAL_AGREEMENT_PRICE                                      VALOR_TOTAL,
+       A.CF$_OBSERVATION                                                OBSERVACAO 
+
+  FROM IFSLAF.LAF_CREDIT_ANALYSIS_CLV A
