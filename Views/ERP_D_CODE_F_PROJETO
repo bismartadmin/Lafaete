@@ -1,0 +1,15 @@
+select b.project_id                                                                   ID_CODE_F_PROJETO,
+       b.description                                                                  DESC_CODE_F_PROJETO,
+       B.company                                                                      ID_EMPRESA,
+       B.project_id||'-'||B.company                                                   CHAVE_PROJETO_EMPRESA,
+       IFSLAF.PERSON_INFO_API.Get_Name(a.manager)                                     DESC_GERENTE,
+       IFSLAF.PROJECT_CATEGORY1_GLOBAL_API.Get_Description(CATEGORY1_ID)              DESC_CATEGORIA_1,
+       IFSLAF.PROJECT_CATEGORY2_GLOBAL_API.Get_Description(CATEGORY2_ID)              DESC_CATEGORIA_2,
+       A.CUSTOMER_ID                                                                  ID_CLIENTE,
+       IFSLAF.CUSTOMER_INFO_API.Get_Name(A.CUSTOMER_ID)                               DESC_CLIENTE,
+       (SELECT C.SALES_PRICE FROM IFSLAF.SPECIFIC_SALES_PRICE_MAIN C 
+       WHERE C.company = A.company AND C.project_id = A.project_id)                   VALOR_HORA,
+       A.STATE                                                                        STATUS
+
+
+from ifslaf.PROJECT_CONS_VIEW b LEFT JOIN ifslaf.PROJECT a ON a.project_id = b.project_id AND a.company = b.company
