@@ -1,0 +1,23 @@
+select A.CF$_CONTRATO_RECORRENTE N_CONTRATO,
+       A.CF$_TITULO N_TITULO,
+       A.CF$_ID_CLIENTE ID_CLIENTE,
+       A.CF$_CLIENTE DESC_CLIENTE,
+       A.CF$_COD_VENDEDOR ID_REPRESENTANTE,
+       A.CF$_VENDEDOR DESC_REPRESENTANTE,
+       A.CF$_DATA_BAIXA DATA_BAIXA,
+       A.CF$_VALOR_BAIXADO VALOR_BAIXADO,
+       A.CF$_TX_COMISSAO TX_COMISSAO,
+       A.CF$_VALOR_COMISSAO VALOR_COMISSAO,
+       (SELECT C.DIGITAL_AGREE_STATE FROM IFSLAF.C_REC_AGREEMENT_INFO C WHERE C.agreement_id = A.CF$_CONTRATO_RECORRENTE) STATUS_CONTRATO_DIGITAL,
+
+(case
+         when (select count(b.serial_no)
+                 from IFSLAF.C_REC_AGREEMENT_RENTED_ASSET b
+                where b.rented_asset = 'TRUE'
+                  and b.agreement_id = a.CF$_CONTRATO_RECORRENTE) > 0 then
+          'Mobilizado'
+         else
+          'Desmobilizado'
+       end) STATUS_CONTRATO,
+       'Comissão - Stand By' TIPO_PREMIO
+  from ifslaf.LAF_STAND_BY_CLV a
