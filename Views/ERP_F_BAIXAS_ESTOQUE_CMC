@@ -1,0 +1,239 @@
+SELECT SUBTAB.ID_TRANSACAO,SUBTAB.DATA_CRIACAO,SUBTAB.DATA_UTILIZACAO,SUBTAB.COD_TRANSACAO,SUBTAB.DESC_TRANSACAO,SUBTAB.ID_MATERIAL,SUBTAB.LOCAL_ESTOQUE,SUBTAB.ID_SITE,SUBTAB.ID_EMPRESA,SUBTAB.CHAVE_MATERIAL_SITE,SUBTAB.ID_CODE_A_CONTA_CONTAB,SUBTAB.ID_CODE_B_CR,SUBTAB.ID_CODE_C_SITE,SUBTAB.ID_CODE_D_NATUREZA,SUBTAB.ID_CODE_E_ATIVO,SUBTAB.ID_CODE_F_PROJETO,SUBTAB.ID_CODE_G_LINHA,SUBTAB.ID_CODE_H_APR_CUSTO,SUBTAB.ID_CODE_I_NEGOCIO,SUBTAB.USUARIO,SUBTAB.SERIAL,SUBTAB.QTDE,SUBTAB.VALOR_TOTAL,SUBTAB.ULT_ATUALIZACAO,SUBTAB.N_REQUISICAO_MATERIAL,SUBTAB.N_ORDEM_SERVICO,SUBTAB.M_ORDEM_FABRICACAO,SUBTAB.N_LANCTO
+  FROM  (SELECT A.TRANSACTION_ID                                                           AS ID_TRANSACAO,
+               A.DATE_CREATED                                                             AS DATA_CRIACAO,
+               A.DATE_APPLIED                                                             AS DATA_UTILIZACAO,
+               A.TRANSACTION_CODE                                                         AS COD_TRANSACAO,
+               IFSLAF.MPCCOM_SYSTEM_EVENT_API.GET_DESCRIPTION(A.TRANSACTION_CODE)         AS DESC_TRANSACAO,
+               A.PART_NO                                                                  AS ID_MATERIAL,
+               --IFSLAF.INVENTORY_PART_API.GET_DESCRIPTION(A.CONTRACT, A.PART_NO)           AS DESC_MATERIAL,
+               IFSLAF.INVENTORY_LOCATION_API.GET_LOCATION_NAME(A.CONTRACT, A.LOCATION_NO) AS LOCAL_ESTOQUE,
+               A.CONTRACT                                                                 AS ID_SITE,
+               IFSLAF.COMPANY_SITE_API.GET_COMPANY(A.CONTRACT)                            AS ID_EMPRESA,
+               A.PART_NO || '-' || A.CONTRACT                                             AS CHAVE_MATERIAL_SITE,
+               --A.PRE_ACCOUNTING_ID,
+               C.ACCOUNT_NO                                                               AS ID_CODE_A_CONTA_CONTAB,
+               C.CODENO_B                                                                 AS ID_CODE_B_CR,
+               C.CODENO_C                                                                 AS ID_CODE_C_SITE,
+               C.CODENO_D                                                                 AS ID_CODE_D_NATUREZA,
+               C.CODENO_E                                                                 AS ID_CODE_E_ATIVO,
+               C.CODENO_F                                                                 AS ID_CODE_F_PROJETO,
+               C.CODENO_G                                                                 AS ID_CODE_G_LINHA,
+               C.CODENO_H                                                                 AS ID_CODE_H_APR_CUSTO,
+               C.CODENO_I                                                                 AS ID_CODE_I_NEGOCIO,
+               A.USERID                                                                   AS USUARIO,
+               A.SERIAL_NO                                                                AS SERIAL,
+               A.QUANTITY                                                                 AS QTDE,
+               --A.COST * CASE A.DIRECTION WHEN '-' THEN 1 ELSE -1 END                      AS VALOR_UNITARIO,
+               A.COST * CASE A.DIRECTION WHEN '-' THEN 1 ELSE -1 END * A.QUANTITY         AS VALOR_TOTAL,
+               TO_DATE(A.OBJVERSION,'YYYY/MM/DD HH24:MI:SS')                              AS ULT_ATUALIZACAO,
+               A.SOURCE_REF1                                                              AS N_REQUISICAO_MATERIAL,
+               NULL                                                                       AS N_ORDEM_SERVICO,
+               NULL                                                                       AS M_ORDEM_FABRICACAO,
+               A.C_VOUCHER_NO                                                             AS N_LANCTO
+          FROM IFSLAF.INVENTORY_TRANSACTION_HIST2 A
+          LEFT JOIN IFSLAF.MATERIAL_REQUIS_LINE B ON (A.SOURCE_REF1 = B.ORDER_NO AND A.SOURCE_REF2 = B.LINE_NO AND A.SOURCE_REF3 = B.RELEASE_NO AND A.SOURCE_REF4 = B.LINE_ITEM_NO)
+          LEFT JOIN IFSLAF.PRE_ACCOUNTING C ON (B.PRE_ACCOUNTING_ID = C.PRE_ACCOUNTING_ID)
+         WHERE A.TRANSACTION_CODE IN ('INTSHIP','INTUNISS','OERETURN','OESHIP','OEUNSHIP','WOUNISS')
+          AND IFSLAF.COMPANY_SITE_API.GET_COMPANY(A.CONTRACT) = '14'
+        
+         UNION ALL
+        
+        SELECT A.TRANSACTION_ID                                                           AS ID_TRANSACAO,
+               A.DATE_CREATED                                                             AS DATA_CRIACAO,
+               A.DATE_APPLIED                                                             AS DATA_UTILIZACAO,
+               A.TRANSACTION_CODE                                                         AS COD_TRANSACAO,
+               IFSLAF.MPCCOM_SYSTEM_EVENT_API.GET_DESCRIPTION(A.TRANSACTION_CODE)         AS DESC_TRANSACAO,
+               A.PART_NO                                                                  AS ID_MATERIAL,
+               --IFSLAF.INVENTORY_PART_API.GET_DESCRIPTION(A.CONTRACT, A.PART_NO)           AS DESC_MATERIAL,
+               IFSLAF.INVENTORY_LOCATION_API.GET_LOCATION_NAME(A.CONTRACT, A.LOCATION_NO) AS LOCAL_ESTOQUE,
+               A.CONTRACT                                                                 AS ID_SITE,
+               IFSLAF.COMPANY_SITE_API.GET_COMPANY(A.CONTRACT)                            AS ID_EMPRESA,
+               A.PART_NO || '-' || A.CONTRACT                                             AS CHAVE_MATERIAL_SITE,
+              -- A.PRE_ACCOUNTING_ID,
+               C.ACCOUNT_NO                                                               AS ID_CODE_A_CONTA_CONTAB,
+               C.CODENO_B                                                                 AS ID_CODE_B_CR,
+               C.CODENO_C                                                                 AS ID_CODE_C_SITE,
+               C.CODENO_D                                                                 AS ID_CODE_D_NATUREZA,
+               C.CODENO_E                                                                 AS ID_CODE_E_ATIVO,
+               C.CODENO_F                                                                 AS ID_CODE_F_PROJETO,
+               C.CODENO_G                                                                 AS ID_CODE_G_LINHA,
+               C.CODENO_H                                                                 AS ID_CODE_H_APR_CUSTO,
+               C.CODENO_I                                                                 AS ID_CODE_I_NEGOCIO,
+               A.USERID                                                                   AS USUARIO,
+               A.SERIAL_NO                                                                AS SERIAL,
+               A.QUANTITY                                                                 AS QTDE,
+               --A.COST                                                                     AS VALOR_UNITARIO,
+               A.COST * A.QUANTITY                                                        AS VALOR_TOTAL,
+               TO_DATE(A.OBJVERSION,'YYYY/MM/DD HH24:MI:SS')                              AS ULT_ATUALIZACAO,
+               NULL                                                                       AS N_REQUISICAO_MATERIAL,
+               NULL                                                                       AS N_ORDEM_SERVICO,
+               A.SOURCE_REF1                                                              AS M_ORDEM_FABRICACAO,
+               A.C_VOUCHER_NO                                                             AS N_LANCTO
+          FROM IFSLAF.INVENTORY_TRANSACTION_HIST2 A
+          LEFT JOIN IFSLAF.SHOP_MATERIAL_ALLOC_UIV E ON (A.SOURCE_REF1 = E.ORDER_NO AND A.SOURCE_REF2 = E.RELEASE_NO AND A.SOURCE_REF3 = E.SEQUENCE_NO AND A.SOURCE_REF4 = E.LINE_ITEM_NO)
+          LEFT JOIN IFSLAF.PRE_ACCOUNTING C ON (IFSLAF.SHOP_ORD_API.GET_PRE_ACCOUNTING_ID(E.ORDER_NO,E.RELEASE_NO,E.SEQUENCE_NO) = C.PRE_ACCOUNTING_ID)
+         WHERE A.DIRECTION = '-'
+           AND A.TRANSACTION_CODE = 'SOISS'
+            AND IFSLAF.COMPANY_SITE_API.GET_COMPANY(A.CONTRACT) = '14'
+            
+         UNION ALL
+        
+        SELECT A.TRANSACTION_ID                                                           AS ID_TRANSACAO,
+               A.DATE_CREATED                                                             AS DATA_CRIACAO,
+               A.DATE_APPLIED                                                             AS DATA_UTILIZACAO,
+               A.TRANSACTION_CODE                                                         AS COD_TRANSACAO,
+               IFSLAF.MPCCOM_SYSTEM_EVENT_API.GET_DESCRIPTION(A.TRANSACTION_CODE)         AS DESC_TRANSACAO,
+               A.PART_NO                                                                  AS ID_MATERIAL,
+               --IFSLAF.INVENTORY_PART_API.GET_DESCRIPTION(A.CONTRACT, A.PART_NO)           AS DESC_MATERIAL,
+               IFSLAF.INVENTORY_LOCATION_API.GET_LOCATION_NAME(A.CONTRACT, A.LOCATION_NO) AS LOCAL_ESTOQUE,
+               A.CONTRACT                                                                 AS ID_SITE,
+               IFSLAF.COMPANY_SITE_API.GET_COMPANY(A.CONTRACT)                            AS ID_EMPRESA,
+               A.PART_NO || '-' || A.CONTRACT                                             AS CHAVE_MATERIAL_SITE,
+               --IFSLAF.WORK_ORDER_API.GET_PRE_ACCOUNTING_ID(A.SOURCE_REF1)                 AS PRE_ACCOUNTING_ID,
+               D.ACCOUNT_NO                                                               AS ID_CODE_A_CONTA_CONTAB,
+               D.CODENO_B                                                                 AS ID_CODE_B_CR,
+               D.CODENO_C                                                                 AS ID_CODE_C_SITE,
+               D.CODENO_D                                                                 AS ID_CODE_D_NATUREZA,
+               D.CODENO_E                                                                 AS ID_CODE_E_ATIVO,
+               D.CODENO_F                                                                 AS ID_CODE_F_PROJETO,
+               D.CODENO_G                                                                 AS ID_CODE_G_LINHA,
+               D.CODENO_H                                                                 AS ID_CODE_H_APR_CUSTO,
+               D.CODENO_I                                                                 AS ID_CODE_I_NEGOCIO,
+               A.USERID                                                                   AS USUARIO,
+               A.SERIAL_NO                                                                AS SERIAL,
+               A.QUANTITY                                                                 AS QTDE,
+               --A.COST                                                                     AS VALOR_UNITARIO,
+               A.COST * A.QUANTITY                                                        AS VALOR_TOTAL,
+               TO_DATE(A.OBJVERSION,'YYYY/MM/DD HH24:MI:SS')                              AS ULT_ATUALIZACAO,
+               NULL                                                                       AS N_REQUISICAO_MATERIAL,
+               A.SOURCE_REF1                                                              AS N_ORDEM_SERVICO,
+               NULL                                                                       AS M_ORDEM_FABRICACAO,
+               A.C_VOUCHER_NO                                                             AS N_LANCTO
+          FROM IFSLAF.INVENTORY_TRANSACTION_HIST2 A
+         INNER JOIN IFSLAF.INVENTORY_PART         B ON (A.CONTRACT = B.CONTRACT AND A.PART_NO = B.PART_NO)
+          LEFT JOIN IFSLAF.PRE_ACCOUNTING         D ON (IFSLAF.WORK_ORDER_API.GET_PRE_ACCOUNTING_ID(A.SOURCE_REF1) = D.PRE_ACCOUNTING_ID)
+         WHERE A.CONTRACT NOT IN ('41', '44', '48', '54')
+           AND A.DIRECTION = '-'
+           AND A.TRANSACTION_CODE = 'WOISS'
+            AND IFSLAF.COMPANY_SITE_API.GET_COMPANY(A.CONTRACT) = '14'
+        
+         UNION ALL
+        
+        SELECT A.TRANSACTION_ID                                                           AS ID_TRANSACAO,
+               A.DATE_CREATED                                                             AS DATA_CRIACAO,
+               A.DATE_APPLIED                                                             AS DATA_UTILIZACAO,
+               A.TRANSACTION_CODE                                                         AS COD_TRANSACAO,
+               IFSLAF.MPCCOM_SYSTEM_EVENT_API.GET_DESCRIPTION(A.TRANSACTION_CODE)         AS DESC_TRANSACAO,
+               A.PART_NO                                                                  AS ID_MATERIAL,
+               --IFSLAF.INVENTORY_PART_API.GET_DESCRIPTION(A.CONTRACT, A.PART_NO)           AS DESC_MATERIAL,
+               IFSLAF.INVENTORY_LOCATION_API.GET_LOCATION_NAME(A.CONTRACT, A.LOCATION_NO) AS LOCAL_ESTOQUE,
+               A.CONTRACT                                                                 AS ID_SITE,
+               IFSLAF.COMPANY_SITE_API.GET_COMPANY(A.CONTRACT)                            AS ID_EMPRESA,
+               A.PART_NO || '-' || A.CONTRACT                                             AS CHAVE_MATERIAL_SITE,
+               --IFSLAF.WORK_ORDER_API.GET_PRE_ACCOUNTING_ID(A.SOURCE_REF1)                 AS PRE_ACCOUNTING_ID,
+               D.ACCOUNT                                                                  AS ID_CODE_A_CONTA_CONTAB,
+               D.CODE_B                                                                   AS ID_CODE_B_CR,
+               D.CODE_C                                                                   AS ID_CODE_C_SITE,
+               CASE WHEN A.DATE_APPLIED >= (DATE '2024-02-01') THEN E.CF$_NATURE_ID ELSE D.CODE_D END AS ID_CODE_D_NATUREZA,
+               D.CODE_E                                                                   AS ID_CODE_E_ATIVO,
+               D.CODE_F                                                                   AS ID_CODE_F_PROJETO,
+               D.CODE_G                                                                   AS ID_CODE_G_LINHA,
+               D.CODE_H                                                                   AS ID_CODE_H_APR_CUSTO,
+               D.CODE_I                                                                   AS ID_CODE_I_NEGOCIO,
+               A.USERID                                                                   AS USUARIO,
+               A.SERIAL_NO                                                                AS SERIAL,
+               A.QUANTITY                                                                 AS QTDE,
+               --A.COST                                                                     AS VALOR_UNITARIO,
+               A.COST * A.QUANTITY                                                        AS VALOR_TOTAL,
+               TO_DATE(A.OBJVERSION,'YYYY/MM/DD HH24:MI:SS')                              AS ULT_ATUALIZACAO,
+               NULL                                                                       AS N_REQUISICAO_MATERIAL,
+               A.SOURCE_REF1                                                              AS N_ORDEM_SERVICO,
+               NULL                                                                       AS M_ORDEM_FABRICACAO,
+               A.C_VOUCHER_NO                                                             AS N_LANCTO
+          FROM IFSLAF.INVENTORY_TRANSACTION_HIST2         A
+         INNER JOIN IFSLAF.INVENTORY_PART                 B ON (A.CONTRACT = B.CONTRACT AND A.PART_NO = B.PART_NO)
+         INNER JOIN IFSLAF.WORK_ORDER                     C ON (A.SOURCE_REF1 = C.WO_NO)
+         INNER JOIN IFSLAF.FA_OBJECT                      D ON (C.COMPANY = D.COMPANY AND C.MCH_CODE = D.OBJECT_ID)
+          LEFT JOIN IFSLAF.LAF_PROD_FAMILY_PARAMETERS_CLV E ON (IFSLAF.COMPANY_SITE_API.GET_COMPANY(B.CONTRACT) = E.CF$_COMPANY_ID AND B.PART_PRODUCT_FAMILY = E.CF$_FAMILY_ID)
+         WHERE A.CONTRACT IN ('41', '44', '48', '54')
+           AND A.DIRECTION = '-'
+           AND A.TRANSACTION_CODE = 'WOISS'
+            AND IFSLAF.COMPANY_SITE_API.GET_COMPANY(A.CONTRACT) = '14'
+        
+         UNION ALL
+        
+        SELECT A.TRANSACTION_ID                                                           AS ID_TRANSACAO,
+               A.DATE_CREATED                                                             AS DATA_CRIACAO,
+               A.DATE_APPLIED                                                             AS DATA_UTILIZACAO,
+               A.TRANSACTION_CODE                                                         AS COD_TRANSACAO,
+               IFSLAF.MPCCOM_SYSTEM_EVENT_API.GET_DESCRIPTION(A.TRANSACTION_CODE)         AS DESC_TRANSACAO,
+               A.PART_NO                                                                  AS ID_MATERIAL,
+               --IFSLAF.INVENTORY_PART_API.GET_DESCRIPTION(A.CONTRACT, A.PART_NO)           AS DESC_MATERIAL,
+               IFSLAF.INVENTORY_LOCATION_API.GET_LOCATION_NAME(A.CONTRACT, A.LOCATION_NO) AS LOCAL_ESTOQUE,
+               A.CONTRACT                                                                 AS ID_SITE,
+               IFSLAF.COMPANY_SITE_API.GET_COMPANY(A.CONTRACT)                            AS ID_EMPRESA,
+               A.PART_NO || '-' || A.CONTRACT                                             AS CHAVE_MATERIAL_SITE,
+               --A.PRE_ACCOUNTING_ID,
+               B.ACCOUNT_NO                                                               AS ID_CODE_A_CONTA_CONTAB,
+               B.CODENO_B                                                                 AS ID_CODE_B_CR,
+               B.CODENO_C                                                                 AS ID_CODE_C_SITE,
+               B.CODENO_D                                                                 AS ID_CODE_D_NATUREZA,
+               B.CODENO_E                                                                 AS ID_CODE_E_ATIVO,
+               B.CODENO_F                                                                 AS ID_CODE_F_PROJETO,
+               B.CODENO_G                                                                 AS ID_CODE_G_LINHA,
+               B.CODENO_H                                                                 AS ID_CODE_H_APR_CUSTO,
+               B.CODENO_I                                                                 AS ID_CODE_I_NEGOCIO,
+               A.USERID                                                                   AS USUARIO,
+               A.SERIAL_NO                                                                AS SERIAL,
+               A.QUANTITY * CASE WHEN A.DIRECTION = '+' THEN -1 ELSE 1 END                AS QTDE,
+               --A.COST * CASE WHEN A.DIRECTION = '+' THEN -1 ELSE 1 END                    AS VALOR_UNITARIO,
+               A.COST * A.QUANTITY * CASE WHEN A.DIRECTION = '+' THEN -1 ELSE 1 END       AS VALOR_TOTAL,
+               TO_DATE(A.OBJVERSION,'YYYY/MM/DD HH24:MI:SS')                              AS ULT_ATUALIZACAO,
+               NULL                                                                       AS N_REQUISICAO_MATERIAL,
+               NULL                                                                       AS N_ORDEM_SERVICO,
+               NULL                                                                       AS M_ORDEM_FABRICACAO,
+               A.C_VOUCHER_NO                                                             AS N_LANCTO
+          FROM IFSLAF.INVENTORY_TRANSACTION_HIST2 A
+         INNER JOIN IFSLAF.MPCCOM_ACCOUNTING B ON (A.ACCOUNTING_ID = B.ACCOUNTING_ID AND A.TRANSACTION_CODE = B.EVENT_CODE)
+         WHERE B.STR_CODE IN ('M184', 'M7')
+           AND A.TRANSACTION_CODE IN ('COUNT-IN','COUNT-OUT')
+            AND IFSLAF.COMPANY_SITE_API.GET_COMPANY(A.CONTRACT) = '14'
+     ) SUBTAB
+ WHERE NOT EXISTS(SELECT 1
+                    FROM IFSLAF.LAF_BAIXAS_ESTOQUE_CLV A
+                   WHERE SUBTAB.ID_TRANSACAO = A.CF$_ID_TRANSACAO)
+
+ UNION ALL
+
+SELECT B.CF$_ID_TRANSACAO,
+       B.CF$_DATA_CRIACAO,
+       B.CF$_DATA_UTILIZACAO,
+       B.CF$_COD_TRANSACAO,
+       IFSLAF.MPCCOM_SYSTEM_EVENT_API.GET_DESCRIPTION(B.CF$_COD_TRANSACAO),
+       B.CF$_ID_MATERIAL,
+       --IFSLAF.INVENTORY_PART_API.GET_DESCRIPTION(B.CF$_ID_SITE, B.CF$_ID_MATERIAL),
+       NULL,
+       B.CF$_ID_SITE,
+       B.CF$_ID_EMPRESA,
+       B.CF$_ID_MATERIAL || '-' || B.CF$_ID_SITE,
+       --NULL,
+       NULL,
+       B.CF$_CODE_B,
+       B.CF$_CODE_C,
+       B.CF$_CODE_D,
+       B.CF$_CODE_E,
+       B.CF$_CODE_F,
+       B.CF$_CODE_G,
+       B.CF$_CODE_H,
+       B.CF$_CODE_I,
+       B.CF$_USER,
+       B.CF$_CODE_E,
+       B.CF$_QTDE,
+      -- B.CF$_VALOR_UNITARIO * (-1),
+       B.CF$_VALOR_TOTAL * (-1),
+       B.CF$_ULT_UTILIZACAO,
+       NULL,
+       NULL,
+       NULL,
+       NULL
+  FROM IFSLAF.LAF_BAIXAS_ESTOQUE_CLV B
