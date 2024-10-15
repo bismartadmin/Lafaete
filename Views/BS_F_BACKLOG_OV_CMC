@@ -1,0 +1,26 @@
+SELECT 
+A.order_no                       ID_OC,
+A.line_no                        N_LINHA,
+A.REL_NO                         N_ENTREGA,
+A.state                          STATUS,
+A.PROJECT_ID                     ID_CODE_F_PROJETO,
+A.CODE_G                         ID_CODE_G_LINHA,
+TO_DATE(A.PLANNED_DELIVERY_DATE) DATA_CRIACAO,
+A.CF$_FIRST_DATE_PCP             PRIMEIRA_DATA_PCP,
+A.SALESMAN_CODE                  ID_VENDEDOR,
+A.CF$_SALESMAN                   DESC_VENDEDOR,
+A.CUSTOMER_NO                    ID_CLIENTE,
+A.CUSTOMER_NAME                  DESC_CLIENTE,
+A.CONTRACT                       ID_SITE,
+A.AGREEMENT_ID                   N_CONTRATO,
+A.ORDER_ID                       TIPO_ORDEM,
+A.PART_NO                        ID_MATERIAL,
+A.BUY_QTY_DUE                    QTDE_VENDA,
+A.SALE_UNIT_PRICE                PRECO_MOEDA,
+A.COST                           CUSTO,
+IFSLAF.Customer_Order_Line_API.Get_Base_Sale_Price_Total(ORDER_NO, LINE_NO,REL_NO,LINE_ITEM_NO) VALOR_LIQUIDO,
+IFSLAF.Customer_Order_Line_API.Get_Base_Price_Incl_Tax_Total(ORDER_NO,LINE_NO,REL_NO,LINE_ITEM_NO) VALOR_BRUTO,
+TO_DATE(A.DATE_ENTERED)          CRIADO,
+A.C_OPPORTUNITY_NO               ID_OPORTUNIDADE
+
+FROM IFSLAF.CUSTOMER_ORDER_JOIN_CFV A
