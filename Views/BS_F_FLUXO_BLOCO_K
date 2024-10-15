@@ -1,0 +1,54 @@
+SELECT A.COMPANY,
+               A.PARENT_COMPANY,
+               A.PAYMENT_ID,
+               A.SERIES_ID,
+               NULL TRANS_ID,
+               IFSLAF.PAYMENT_PER_CURRENCY_API.GET_SHORT_NAME(A.COMPANY, A.SERIES_ID, A.PAYMENT_ID, A.CURRENCY) AS SHORT_NAME,
+               A.VOUCHER_NO,
+               A.VOUCHER_DATE,
+               A.PAY_DATE,
+               A.VOUCHER_TYPE,
+               A.PAYMENT_TYPE_CODE,
+               B.REFERENCE_NUMBER,
+               NULL INSTALLMENT_ID,
+               NULL TIPO_TITULO,
+               B.ENTRY_DATE LEDGER_DATE,
+               B.ENTRY_DATE C_DUE_DATE_ORG,
+               B.ENTRY_DATE DUE_DATE,
+               B.PARTY_TYPE_ID IDENTITY,
+               B.PARTY_NAME,
+               IFSLAF.LEDGER_TRANSACTION_API.GET_PARTY_TYPE(B.COMPANY, A.SERIES_ID, A.PAYMENT_ID, B.ROW_NO) ESPECIE_PARCEIRO,
+               NULL TIPO_PARCEIRO,
+               B.PARTY_TYPE_ID,
+               B.ACCOUNT CODE_A,
+               B.CODE_B,
+               B.CODE_C,
+               B.CODE_D,
+               B.CODE_E,
+               B.CODE_F,
+               B.CODE_G,
+               B.CODE_H,
+               B.CODE_I,
+               B.CODE_J,
+               B.AMOUNT VALOR,
+               'Entrada' TIPO_MOVIMENTO,
+               A.OBJVERSION,
+               B.TRANS_CODE,
+               b.text OBS,
+               'K' BLOCO_CODIGO,
+               NULL ADV_INV,
+               NULL ID_SERIE 
+          FROM IFSLAF.PAYMENT_PER_CURRENCY_SU_QRY A
+         INNER JOIN IFSLAF.GEN_LED_VOUCHER_ROW_UNION_QRY B ON (A.COMPANY = B.COMPANY AND A.VOUCHER_NO = B.VOUCHER_NO AND A.VOUCHER_DATE = B.VOUCHER_DATE AND  A.VOUCHER_TYPE = B.VOUCHER_TYPE)
+         WHERE (A.SERIES_ID = 'SUPAY')
+           AND (A.VOUCHER_TYPE IN ('B', 'N', 'U'))
+           AND (B.IS_MULTI_COMPANY_VOUCHER = 'TRUE')
+           and B.AMOUNT > 0
+           AND (B.TRANS_CODE IN ('PP1'))
+           and a.payment_type_code_db = 'SUPPPAY'
+           AND (EXISTS(SELECT 1
+                         FROM IFSLAF.CASH_TRANSACTION Z 
+                        WHERE (A.COMPANY = Z.COMPANY)
+                          AND (A.SERIES_ID = Z.SERIES_ID)
+                          AND (A.PAYMENT_ID = Z.PAYMENT_ID)
+                          AND (Z.ROLLEDBACK = 'TRUE')))
