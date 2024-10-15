@@ -1,0 +1,51 @@
+select a.wo_no                                                                                        N_OS,
+       A.state                                                                                        STATUS_OS,
+       A.MCH_CODE                                                                                     SERIAL,
+       IFSLAF.WORK_TYPE_API.Get_Description(A.WORK_TYPE_ID)                                           TIPO_OS,
+       (select x.dt_cre from ifslaf.WORK_ORDER_JOURNAL x where x.wo_no = a.wo_no order by dt_cre fetch first row only  ) DATA_ABERTURA_OS ,
+       B.requisition_no                                                                               ID_REQUISICAO,
+       B.REQUISITION_DATE                                                                             DATA_CRIACAO_REQUISICAO,
+       IFSLAF.Purchase_Req_Util_API.Get_Requisition_State(B.REQUISITION_NO)                           STATUS_REQUISICAO,
+       B.DESTINATION_ID                                                                               DESTINO,
+       C.order_no                                                                                     ID_OC,
+       C.line_no                                                                                      ID_LINHA_OC,
+       IFSLAF.Purchase_Order_Line_Part_API.Get_STATE(C.Order_No,C.Line_No,C.Release_No)               STATUS_LINHA_OC,
+       C.PART_NO                                                                                      ID_MATERIAL,
+       C.DESCRIPTION                                                                                  DESC_MATERIAL,
+       C.VENDOR_NO                                                                                    ID_FORNECEDOR,
+       IFSLAF.SUPPLIER_INFO_GENERAL_API.Get_Name(C.VENDOR_NO)                                         DESC_FORNECEDOR,
+       IFSLAF.Purchase_Order_Line_Part_API.Get_Planned_Receipt_Date(C.Order_No,C.Line_No,C.Release_No)DATA_DESEJADA,
+       IFSLAF.PURCHASE_ORDER_LINE_PART_CFP.Get_Cf$_Date_Closed(C.Order_No,C.Line_No,C.Release_No)     DATA_FECHAMENTO_LINHA_REAL,
+       IFSLAF.Purchase_Order_Line_Part_API.Get_Total_In_Order_Curr(C.Order_No,C.Line_No,C.Release_No) VALOR_LINHA_OC       
+
+from ifslaf.work_order a 
+join ifslaf.WORK_ORDER_REQUIS_PURCH b on a.wo_no = b.wo_no
+left join ifslaf.PART_WO_REQUIS_PURCH_LINE c on b.requisition_no = c.requisition_no
+
+UNION ALL
+
+select null                                                                                       N_OS,
+       null                                                                                        STATUS_OS,
+       d.code_e                                                                                     SERIAL,
+       'COR'                                           TIPO_OS,
+       null                                                                                     DATA_ABERTURA_OS,
+       null                                                                              ID_REQUISICAO,
+       null                                                                             DATA_CRIACAO_REQUISICAO,
+       null                                                                                           STATUS_REQUISICAO,
+       null                                                                                             DESTINO,
+       d.order_no                                                                                     ID_OC,
+       d.line_no                                                                                      ID_LINHA_OC,
+       IFSLAF.Purchase_Order_Line_Part_API.Get_STATE(d.Order_No,d.Line_No,D.Release_No)               STATUS_LINHA_OC,
+       d.PART_NO                                                                                      ID_MATERIAL,
+       d.DESCRIPTION                                                                                  DESC_MATERIAL,
+       d.VENDOR_NO                                                                                    ID_FORNECEDOR,
+       IFSLAF.SUPPLIER_INFO_GENERAL_API.Get_Name(d.VENDOR_NO)                                         DESC_FORNECEDOR,
+       IFSLAF.Purchase_Order_Line_Part_API.Get_Planned_Receipt_Date(d.Order_No,d.Line_No,d.Release_No)DATA_DESEJADA,
+       IFSLAF.PURCHASE_ORDER_LINE_PART_CFP.Get_Cf$_Date_Closed(d.Order_No,d.Line_No,d.Release_No)     DATA_FECHAMENTO_LINHA_REAL,
+       IFSLAF.Purchase_Order_Line_Part_API.Get_Total_In_Order_Curr(d.Order_No,d.Line_No,d.Release_No) VALOR_LINHA_OC   
+
+from ifslaf.PURCHASE_ORDER_LINE_PART d
+where d.code_e is not null
+and not exists (select 1 from ifslaf.INVENTORY_PART e where e.part_no = d.part_no and e.contract = d.contract)
+and not exists (select 1 from ifslaf.PART_WO_REQUIS_PURCH_LINE c where C.order_no = d.order_no and C.Line_No = d.Line_No and C.Release_No = d.Release_No)
+and d.objstate = 'Closed'
