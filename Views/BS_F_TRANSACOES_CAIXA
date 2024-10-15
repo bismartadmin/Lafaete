@@ -1,0 +1,22 @@
+SELECT A.company                                  ID_EMPRESA,
+       A.series_id                                SERIE_PAGTO,
+       A.PAYMENT_ID                               ID_PAGTO,
+       A.SHORT_NAME                               ID_CONTA_MOVIMENTO,
+       A.VOUCHER_NO                               N_LANCTO,
+       A.VOUCHER_DATE                             DATA_LANCTO,
+       A.pay_date                                 DATA_PAGTO,
+       A.payment_ledger_type                      TIPO_PAGAMENTO,
+       A.company||'-'||a.series_id||'-'||A.payment_id||'-'||A.SHORT_NAME               CHAVE_EMP_SERIE_PGTO_CONTA,
+       A.company||'-'||A.SHORT_NAME||'-'||TO_CHAR(A.VOUCHER_DATE,'DD/MM/RRRR')         CHAVE_EMP_CONTA_DT
+
+FROM IFSLAF.CASH_TRANSACTION_CU_QRY  A 
+GROUP BY 
+
+A.company,
+       A.series_id,
+       A.PAYMENT_ID,
+       A.SHORT_NAME,
+       A.VOUCHER_NO,
+       A.VOUCHER_DATE,
+       A.pay_date,
+       A.payment_ledger_type
