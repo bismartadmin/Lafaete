@@ -1,0 +1,23 @@
+SELECT a.wo_no                                                     N_OS,
+       a.task_seq                                                  N_TAREFA_OS,
+       a.description                                               DESC_TAREFA_OS,
+       a.work_type_id                                              TIPO_OS,
+       ifslaf.work_order_api.Get_Contract(a.WO_NO)                 ID_SITE,
+       ifslaf.WORK_STAGE_API.Get_Description(a.work_stage_id)      DESC_ETAPA_SERVICO,
+       a.cf$_Cell                                                  CELULA,
+       a.REPORTED_OBJECT_ID                                        SERIAL,
+       ifslaf.EQUIPMENT_SERIAL_API.Get_Part_No(contract_ => ifslaf.work_order_api.Get_Mch_Code_Contract(a.wo_no),
+       mch_code_ => a.REPORTED_OBJECT_ID)                          ID_MATERIAL,
+       IFSLAF.PART_CATALOG_API.Get_Description(part_no_       => ifslaf.EQUIPMENT_SERIAL_API.Get_Part_No(contract_ => ifslaf.work_order_api.Get_Mch_Code_Contract(a.wo_no),
+       mch_code_ => a.REPORTED_OBJECT_ID), language_code_ => 'bp') DESC_MATERIAL,
+       a.created_by                                                DESC_USUARIO_ABERTURA,
+       a.created_date                                              DATA_CRIACAO,
+       a.PLANNED_START                                             DATA_INICIO_PLANEJADO,
+       a.PLANNED_FINISH                                            DATA_FINAL_PLANEJADO,
+       a.actual_start                                              DATA_INICIO_REAL,
+       a.actual_finish                                             DATA_FINAL_REAL,
+       a.state                                                     STATUS_TAREFA,
+       a.CF$_QUALITY_INSPECTION                                    INSPECAO_QUALIDADE
+       
+  FROM ifslaf.Jt_Task_Uiv_Cfv A
+ where a.STATE <> 'Cancelado'
