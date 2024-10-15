@@ -1,0 +1,30 @@
+SELECT A.ORDER_NO                 ID_OC,
+       ifslaf.PURCHASE_ORDER_TYPE_API.Get_Description(a.ORDER_CODE) TIPO_OC,
+       A.CONTRACT                 ID_SITE,     
+       a.VENDOR_NO                ID_FORNECEDOR,
+       ifslaf.Supplier_API.Get_Vendor_name(a.VENDOR_NO) DESC_FORNECEDOR,
+       ifslaf.INVOICE_PARTY_TYPE_GROUP_API.Get_Description(company_ => a.COMPANY,party_type_ => 'Fornecedor',group_id_ => ifslaf.IDENTITY_INVOICE_INFO_API.Get_Group_Id(company_ => a.COMPANY,identity_ => a.VENDOR_NO,party_type_ => 'Fornecedor')) DESC_GRUPO_FORNECEDOR,
+       ifslaf.IDENTITY_INVOICE_INFO_API.Get_Identity_Type(company_ => a.COMPANY, identity_ => a.VENDOR_NO,  party_type_ => 'Fornecedor') TIPO_PARCEIRO,
+       a.BUYER_CODE               ID_COMPRADOR,
+       ifslaf.PURCHASE_BUYER_API.Get_Name(a.BUYER_CODE) DESC_COMPRADOR,
+       a.AUTHORIZE_CODE           ID_COORDENADOR,
+       ifslaf.ORDER_COORDINATOR_API.Get_Name(a.AUTHORIZE_CODE) DESC_COORDENADOR,
+       NVL(a.CF$_CONTRACT,'NAO')  CONTRATO,
+       a.PAY_TERM_ID              ID_COND_PAGTO,
+       ifslaf.PAYMENT_TERM_API.Get_Description(a.COMPANY,a.PAY_TERM_ID) DESC_COND_PAGTO,
+       ifslaf.pURCHASE_ORDER_API.GET_OPERATION_DESCRIPTION(a.OPERATION_ID)  DESC_OPERACAO_FISCAL,
+  
+      NVL(A.CF$_REG_FINANCE,'Não')                                                    REG_FINANCEIRO,
+       NVL(A.CF$_REG_SUPRIMENTOS,'Não')                                                REG_SUPRIMENTOS,
+       a.STATE                    STATUS_OC,
+       a.DATE_ENTERED             DATA_CRIACAO_OC,
+       a.ORDER_DATE               DATA_LIBERACAO,
+       (SELECT F.DATE_APPROVED FROM IFSLAF.PURCHASE_ORDER_APPROVAL F WHERE F.order_no = a.ORDER_NO ORDER BY F.DATE_APPROVED FETCH FIRST ROW ONLY)   DATA_PRIMEIRA_LIBERACAO,
+       (SELECT E.date_entered FROM IFSLAF.PURCHASE_ORDER_HIST E WHERE E.hist_objstate = 'Closed' and e.order_no = a.ORDER_NO ORDER BY e.history_no DESC FETCH FIRST ROW ONLY) DATA_FECHAMENTO_OC,
+       TO_DATE(a.objversion,'YYYY/MM/DD HH24:MI:SS') ULT_ATUALIZACAO
+
+       
+  FROM IFSLAF.PURCHASE_ORDER_CFV A
+
+  
+WHERE a.STATE <> 'Cancelado' and a.ORDER_CODE <> '4'
