@@ -1,0 +1,14 @@
+select a.job_id             ID_TAREFA,
+       a.description        DESCRICAO,
+       A.state              STATUS,
+       A.arguments          ARGUMENTOS,
+       A.username           USUARIO,
+       A.created            DATA_CRIACAO,
+       A.procedure_name     FUNCAO,
+       A.ERROR_TEXT         TEXTO_ERRO,
+       A.ERROR_KEY_VALUE    ERRO_VALOR_CHAVE,
+       A.PROGRESS_INFO      INFO_PROGRESSO,
+       A.queue_id           FILA
+      from ifslaf.DEFERRED_JOB a
+where (a.state_db = 'Error'  OR a.state_db = 'Warning')
+and a.created > sysdate - 10
