@@ -1,0 +1,137 @@
+select a.part_no                                                         ID_MATERIAL,
+       A.description                                                            DESC_MATERIAL,
+       A.contract                                                               ID_SITE,
+       ifslaf.company_site_api.Get_Company(a.contract)                          ID_EMPRESA,
+       a.part_no||'-'||a.contract                                               CHAVE_MATERIAL_SITE,
+          'ESTOCAVEL'                                                           TIPO_MATERIAL,
+       A.unit_meas                                                              ID_UNIDADE_MEDIDA,
+       a.prime_commodity                                                        ID_GRUPO_MATERIAL,
+       IFSLAF.Commodity_Group_API.Get_Description(A.PRIME_COMMODITY)            DESC_GRUPO_MATERIAL,
+       A.second_commodity                                                       ID_LINHA_MATERIAL,
+       IFSLAF.Commodity_Group_API.Get_Description(A.SECOND_COMMODITY)           DESC_LINHA_MATERIAL,
+       ifslaf.purchase_part_api.Get_Stat_Grp(a.contract, a.part_no)             GRUPO_COMPRA,
+       Ifslaf.Purchase_Part_Group_Api.Get_Description(ifslaf.purchase_part_api.Get_Stat_Grp(a.contract, a.part_no)) DESC_GRUPO_COMPRA,
+       A.PART_PRODUCT_FAMILY                                                    FAMILIA_PRODUTO,
+     ifslaf.Inventory_Product_Family_API.Get_Description(A.part_product_family) DESC_FAMILIA_PRODUTO,
+       
+       CASE  ifslaf.company_site_api.Get_Company(a.contract)
+         WHEN '14' THEN '04'
+         WHEN '41' THEN '08'
+         WHEN '40' THEN '09'
+         WHEN '28' THEN '05'
+         WHEN '45' THEN '02'
+         WHEN '48' THEN '08'
+         WHEN '49' THEN '11'
+         WHEN '50' THEN '14'
+         WHEN '51' THEN '10'
+          ELSE B.CODE_I   END                                                   ID_CODE_I_NEGOCIO,
+       IFSLAF.CODE_I_API.Get_Description(ifslaf.company_site_api.Get_Company(a.contract),(CASE  ifslaf.company_site_api.Get_Company(a.contract)
+         WHEN '14' THEN '04'
+         WHEN '41' THEN '08'
+         WHEN '40' THEN '09'
+         WHEN '28' THEN '05'
+         WHEN '45' THEN '02'
+         WHEN '48' THEN '08'
+         WHEN '49' THEN '11'
+         WHEN '50' THEN '14'
+         WHEN '51' THEN '10'  
+         
+          ELSE B.CODE_I   END) )             DESC_CODE_I_NEGOCIO,
+            ifslaf.sales_part_api.Get_List_Price(A.contract,a.part_no) VALOR_VENDA,          
+            IFSLAF.SALES_GROUP_API.Get_Description(IFSLAF.SALES_PART_API.Get_Catalog_Group(a.contract,a.part_no)) GRUPO_VENDA
+
+
+from ifslaf.INVENTORY_PART a left join ifslaf.CODE_I b ON b.objkey = IFSLAF.COMMODITY_GROUP_CFP.Get_Cf$_Code_I(IFSLAF.COMMODITY_GROUP_API.Get_Objkey(a.prime_commodity))
+
+UNION ALL
+
+SELECT C.CATALOG_NO                                                             ID_MATERIAL,
+       IFSLAF.Sales_Part_API.Get_Catalog_Desc(C.CONTRACT, C.CATALOG_NO)         DESC_MATERIAL,
+       C.CONTRACT                                                               ID_SITE,
+       ifslaf.company_site_api.Get_Company(C.contract)                          ID_EMPRESA,
+       C.CATALOG_no||'-'||C.contract                                            CHAVE_MATERIAL_SITE,
+       'NAO ESTOCAVEL'                                                          TIPO_MATERIAL,
+       C.SALES_UNIT_MEAS                                                        ID_UNIDADE_MEDIDA,
+       C.CATALOG_GROUP                                                          ID_GRUPO_MATERIAL,
+       IFSLAF.SALES_GROUP_API.Get_Description(C.CATALOG_GROUP)                  DESC_GRUPO_MATERIAL,
+       C.CATALOG_GROUP                                                          ID_LINHA_MATERIAL,
+       IFSLAF.SALES_GROUP_API.Get_Description(C.CATALOG_GROUP)                  DESC_LINHA_MATERIAL,
+       ifslaf.purchase_part_api.get_stat_grp(c.contract, c.catalog_no)          GRUPO_COMPRA,
+       ifslaf.purchase_part_group_api.get_description(ifslaf.purchase_part_api.get_stat_grp(C.contract, C.catalog_no)) DESC_GRUPO_COMPRA,
+     ifslaf.inventory_part_api.get_part_product_family(c.contract,c.catalog_no) FAMILIA_PRODUTO, 
+     ifslaf.inventory_product_family_api.get_description(ifslaf.inventory_part_api.get_part_product_family(C.contract,C.catalog_no)) DESC_FAMILIA_PRODUTO,
+
+       CASE  ifslaf.company_site_api.Get_Company(C.contract)
+         WHEN '14' THEN '04'
+         WHEN '41' THEN '08'
+         WHEN '40' THEN '09'
+         WHEN '28' THEN '05'
+         WHEN '45' THEN '02'
+         WHEN '48' THEN '08'
+         WHEN '49' THEN '11'
+         WHEN '50' THEN '14'
+         WHEN '51' THEN '10'  
+          ELSE  (CASE WHEN C.CATALOG_GROUP IN ('0010','0017') THEN '03' ELSE '07' END )   END                                                   ID_CODE_I_NEGOCIO,
+       IFSLAF.CODE_I_API.Get_Description(ifslaf.company_site_api.Get_Company(c.contract),( CASE  ifslaf.company_site_api.Get_Company(C.contract)
+         WHEN '14' THEN '04'
+         WHEN '41' THEN '08'
+         WHEN '40' THEN '09'
+         WHEN '28' THEN '05'
+         WHEN '45' THEN '02'
+         WHEN '48' THEN '08'
+         WHEN '49' THEN '11'
+         WHEN '50' THEN '14'
+         WHEN '51' THEN '10'
+          ELSE  (CASE WHEN C.CATALOG_GROUP IN ('0010','0017') THEN '03' ELSE '07' END )   END ) )             DESC_CODE_I_NEGOCIO,
+          C.LIST_PRICE     VALOR_VENDA,
+         IFSLAF.SALES_GROUP_API.Get_Description(IFSLAF.SALES_PART_API.Get_Catalog_Group( C.contract,C.CATALOG_no )) GRUPO_VENDA
+          
+FROM IFSLAF.SALES_PART C
+WHERE C.CATALOG_TYPE_DB = 'NON'
+
+UNION ALL
+
+SELECT Y.PART_NO                                                                ID_MATERIAL,
+       IFSLAF.Sales_Part_API.Get_Catalog_Desc(Y.CONTRACT, Y.PART_NO)            DESC_MATERIAL,
+       Y.CONTRACT                                                               ID_SITE,
+       ifslaf.company_site_api.Get_Company(Y.contract)                          ID_EMPRESA,
+       Y.PART_no||'-'||Y.contract                                               CHAVE_MATERIAL_SITE,
+       'NAO ESTOCAVEL'                                                          TIPO_MATERIAL,
+       Y.DEFAULT_BUY_UNIT_MEAS                                                  ID_UNIDADE_MEDIDA,
+       Y.STAT_GRP                                                               ID_GRUPO_MATERIAL,
+       IFSLAF.SALES_GROUP_API.Get_Description(Y.STAT_GRP)                       DESC_GRUPO_MATERIAL,
+       Y.STAT_GRP                                                               ID_LINHA_MATERIAL,
+       IFSLAF.SALES_GROUP_API.Get_Description(Y.STAT_GRP)                       DESC_LINHA_MATERIAL,
+       y.STAT_GRP                                                               GRUPO_COMPRA,
+       ifslaf.PURCHASE_PART_GROUP_API.Get_Description(y.STAT_GRP)               DESC_GRUPO_COMPRA,
+       ifslaf.Inventory_Part_API.Get_Part_Product_Family(y.contract ,y.part_no) FAMILIA_PRODUTO, 
+       ifslaf.Inventory_Product_Family_API.Get_Description(ifslaf.Inventory_Part_API.Get_Part_Product_Family(y.contract ,y.part_no)) DESC_FAMILIA_PRODUTO,
+       
+       CASE  ifslaf.company_site_api.Get_Company(Y.contract)
+         WHEN '14' THEN '04'
+         WHEN '41' THEN '08'
+         WHEN '40' THEN '09'
+         WHEN '28' THEN '05'
+         WHEN '45' THEN '02'
+         WHEN '48' THEN '08'
+         WHEN '49' THEN '11'
+         WHEN '50' THEN '14'
+         WHEN '51' THEN '10'  
+          ELSE  (CASE WHEN Y.STAT_GRP IN ('0010','0017') THEN '03' ELSE '07' END )   END                                                   ID_CODE_I_NEGOCIO,
+       IFSLAF.CODE_I_API.Get_Description(ifslaf.company_site_api.Get_Company(Y.contract),( CASE  ifslaf.company_site_api.Get_Company(Y.contract)
+         WHEN '14' THEN '04'
+         WHEN '41' THEN '08'
+         WHEN '40' THEN '09'
+         WHEN '28' THEN '05'
+         WHEN '45' THEN '02'
+         WHEN '48' THEN '08'
+         WHEN '49' THEN '11'
+         WHEN '50' THEN '14'
+         WHEN '51' THEN '10'
+          ELSE  (CASE WHEN Y.STAT_GRP IN ('0010','0017') THEN '03' ELSE '07' END )   END ) )             DESC_CODE_I_NEGOCIO,
+         NULL     VALOR_VENDA,
+         IFSLAF.SALES_GROUP_API.Get_Description(IFSLAF.SALES_PART_API.Get_Catalog_Group(Y.contract,Y.STAT_GRP)) GRUPO_VENDA
+       
+FROM IFSLAF.PURCHASE_PART Y
+WHERE NOT EXISTS (SELECT C.CATALOG_NO FROM IFSLAF.SALES_PART C WHERE C.CATALOG_NO = Y.PART_NO AND C.CONTRACT = Y.CONTRACT)
+and NOT EXISTS (SELECT A.PART_NO FROM IFSLAF.INVENTORY_PART A WHERE A.part_no = Y.PART_NO AND A.contract = Y.CONTRACT)
