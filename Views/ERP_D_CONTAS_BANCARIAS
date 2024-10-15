@@ -1,0 +1,11 @@
+select  a.SHORT_NAME             ID_CONTA_MOV,
+       A.DESCRIPTION            DESC_CONTA_MOV,
+       A.company                ID_EMPRESA,
+       A.company||'-'||A.short_name CHAVE_EMPRESA_CONTA,
+       A.INSTITUTE_CODE         ID_BANCO,
+       A.OFFICE_CODE            AGENCIA,
+       A.INSTITUTE_ID           DESC_BANCO,
+       A.ACCOUNT_IDENTITY       CONTA,
+       A.CASH_TRANSFER_METHOD   MODELO_TRANSFERENCIA
+       
+from ifslaf.CASH_ACCOUNT a
