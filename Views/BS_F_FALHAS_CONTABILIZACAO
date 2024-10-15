@@ -1,0 +1,171 @@
+select  SUBTAB.ID,
+        SUBTAB.ID_EMPRESA,
+        SUBTAB.ID_SITE,
+        NVL(SUBTAB.ID_CODE_A,'*') AS ID_CODE_A,
+        SUBTAB.ORIGEM,
+        SUBTAB.EVENTO,
+        SUBTAB.COD,
+        SUBTAB.DESCRICAO_ERRO,
+        SUBTAB.USUARIO_ERRO,        
+        SUBTAB.DATA_APLICACAO,
+        SUBTAB.VALOR,
+        SUBTAB.CREDITO_DEBITO,
+        SUBTAB.ID_CODE_B,
+        SUBTAB.ID_CODE_C,
+        SUBTAB.ID_CODE_D,
+        SUBTAB.ID_CODE_E,
+        SUBTAB.ID_CODE_F,
+        SUBTAB.ID_CODE_G,
+        SUBTAB.ID_CODE_H,
+        SUBTAB.ID_CODE_I,
+        SUBTAB.ID_CODE_J,
+        SUBTAB.TIPO_REFERENCIA,
+        SUBTAB.REFERENCIA
+        from (
+
+SELECT  A.accounting_id                         AS ID,
+        a.company                               as ID_EMPRESA,
+        A.CONTRACT                              AS ID_SITE,
+        A.account_no                            AS ID_CODE_A,
+        'Distribuicao e Manufatura' AS ORIGEM,
+        A.EVENT_CODE                            AS EVENTO,
+        A.STR_CODE                              AS COD,
+        A.ERROR_DESC                            AS DESCRICAO_ERRO,
+        A.USERID                                AS USUARIO_ERRO,        
+        A.DATE_APPLIED                          AS DATA_APLICACAO,
+        A.CURR_AMOUNT                           AS VALOR,
+        A.DEBIT_CREDIT                          AS CREDITO_DEBITO,
+        a.codeno_b                              as ID_CODE_B,
+        a.codeno_C                              as ID_CODE_C,
+        a.codeno_D                              as ID_CODE_D,
+        a.codeno_E                              as ID_CODE_E,
+        a.codeno_F                              as ID_CODE_F,
+        a.codeno_G                              as ID_CODE_G,
+        a.codeno_H                              as ID_CODE_H,
+        a.codeno_I                              as ID_CODE_I,
+        a.codeno_J                              as ID_CODE_J,
+        null                                    as TIPO_REFERENCIA,
+        NULL                                        as REFERENCIA
+
+FROM ifslaf.MPCCOM_ACCOUNTING a 
+WHERE A.error_desc is not null 
+
+union all
+
+SELECT  B.INVOICE_ID                            AS ID,
+        B.company                               AS ID_EMPRESA,
+        B.code_C                                AS ID_SITE,
+        NVL(B.CODE_A, '*')     AS ID_CODE_A,
+        'Titulo de Cliente'                     AS ORIGEM,
+        C.creator                               AS EVENTO,
+        B.posting_type                          AS COD,
+        B.text                                  AS DESCRICAO_ERRO,
+        NULL                                    AS USUARIO_ERRO,        
+        C.invoice_date                          AS DATA_APLICACAO,
+        B.CURR_AMOUNT * -1                      AS VALOR,
+        'C'                                     AS CREDITO_DEBITO,
+        B.code_b                                AS ID_CODE_B,
+        B.code_C                                AS ID_CODE_C,
+        B.code_D                                AS ID_CODE_D,
+        B.code_E                                AS ID_CODE_E,
+        B.code_F                                AS ID_CODE_F,
+        B.code_G                                AS ID_CODE_G,
+        B.code_H                                AS ID_CODE_H,
+        B.code_I                                AS ID_CODE_I,
+        B.code_j                                AS ID_CODE_J,
+        'Titulo Cliente'                                    as TIPO_REFERENCIA,
+        c.INVOICE_NO                                        as REFERENCIA
+FROM ifslaf.INV_ACCOUNTING_ROW2 B
+JOIN ifslaf.invoice C
+    ON C.company = B.company 
+    AND C.party_type = B.party_type 
+    AND C.invoice_id = B.invoice_id 
+WHERE B.ERROR_FLAG = 'TRUE' and c.objstate <> 'Cancelled'
+GROUP BY B.INVOICE_ID, B.company, B.code_C, NVL(B.CODE_A, '*'), 'Titulo de Cliente', C.creator, B.posting_type, B.text, NULL, C.invoice_date, B.CURR_AMOUNT * -1, 'C', B.code_b, B.code_C, B.code_D, B.code_E, B.code_F, B.code_G, B.code_H, B.code_I, B.code_j,  c.INVOICE_NO 
+
+union all
+
+SELECT  B.INVOICE_ID                            AS ID,
+        B.company                               AS ID_EMPRESA,
+        B.code_C                                AS ID_SITE,
+        NVL(B.CODE_A, '*')                      AS ID_CODE_A,
+        'Titulo de Fornecedor'                     AS ORIGEM,
+        b.creator                               AS EVENTO,
+        NULL                          AS COD,
+        B.error_text                                  AS DESCRICAO_ERRO,
+        NULL                                    AS USUARIO_ERRO,        
+        b.invoice_date                          AS DATA_APLICACAO,
+        B.net_CURR_AMOUNT                       AS VALOR,
+        'D'                                     AS CREDITO_DEBITO,
+        B.code_b                                AS ID_CODE_B,
+        B.code_C                                AS ID_CODE_C,
+        B.code_D                                AS ID_CODE_D,
+        B.code_E                                AS ID_CODE_E,
+        B.code_F                                AS ID_CODE_F,
+        B.code_G                                AS ID_CODE_G,
+        B.code_H                                AS ID_CODE_H,
+        B.code_I                                AS ID_CODE_I,
+        B.code_j                                AS ID_CODE_J,
+        'Titulo Forn'                                    as TIPO_REFERENCIA,
+        B.INVOICE_NO                                        as REFERENCIA
+
+FROM ifslaf.MAN_SUPP_INVOICE B
+WHERE B.ERROR_text is not null AND B.objstate <> 'Cancelled'
+
+union all
+
+SELECT  A.transaction_id                        AS ID,
+        a.company                               as ID_EMPRESA,
+        A.site                                  AS ID_SITE,
+        nvl(A.CODE_A,'*')                       AS ID_CODE_A,
+        'Tarefa de Trabalho'              AS ORIGEM,
+        A.TRANSACTION_TYPE                            AS EVENTO,
+        A.STR_CODE                              AS COD,
+        A.ERROR_DESC                            AS DESCRICAO_ERRO,
+        A.CREATED_BY                                AS USUARIO_ERRO,        
+        A.CREATED_DATE                         AS DATA_APLICACAO,
+        A.COST_AMOUNT                          AS VALOR,
+        case when a.DEBIT_VALUE is null then 'C' ELSE 'D' END                       AS CREDITO_DEBITO,
+        a.code_b                              as ID_CODE_B,
+        a.code_C                              as ID_CODE_C,
+        a.code_D                              as ID_CODE_D,
+        a.code_E                              as ID_CODE_E,
+        a.code_F                              as ID_CODE_F,
+        a.code_G                              as ID_CODE_G,
+        a.code_H                              as ID_CODE_H,
+        a.code_I                              as ID_CODE_I,
+        a.code_J                              as ID_CODE_J,
+        'OS'                                    as TIPO_REFERENCIA,
+        to_char(a.wo_no)                                        as REFERENCIA
+
+FROM ifslaf.jT_TASK_POSTING_ANALYSIS a 
+WHERE A.objstate = 'Error'
+
+union all
+
+SELECT  A.project_transaction_seq                        AS ID,
+        a.company_id                               as ID_EMPRESA,
+        A.CODE_C                                  AS ID_SITE,
+        nvl(A.CODE_A,'*')                       AS ID_CODE_A,
+        'Projeto'              AS ORIGEM,
+        A.REPORT_COST_TYPE                            AS EVENTO,
+        A.posting_type                              AS COD,
+        A.ERROR_DESC                            AS DESCRICAO_ERRO,
+        IFSLAF.COMPANY_PERSON_API.GET_INTERNAL_DISPLAY_NAME(A.COMPANY_ID,A.EMP_NO)                            AS USUARIO_ERRO,        
+        A.ACCOUNT_DATE                         AS DATA_APLICACAO,
+        DECODE(a.TRANSACTION_TYPE, 1, (DECODE(a.POSTING_TYPE, 'PRJT9', -ifslaf.Project_Transaction_API.Get_Sales_Amount(a.project_transaction_seq), 'PRJC7', -ifslaf.Project_Transaction_API.Get_Sales_Amount(a.PROJECT_TRANSACTION_SEQ), 'PRJC11', -ifslaf.Project_Transaction_API.Get_Sales_Amount(a.PROJECT_TRANSACTION_SEQ), ifslaf.Project_Transaction_API.Get_Sales_Amount(a.PROJECT_TRANSACTION_SEQ))),0, ifslaf.Invoicing_Plan_API.Get_Sales_Amount(a.COMPANY_ID, a.PROJECT_TRANSACTION_SEQ ))                          AS VALOR,
+        'C'                       AS CREDITO_DEBITO,
+        a.code_b                              as ID_CODE_B,
+        a.code_C                              as ID_CODE_C,
+        a.code_D                              as ID_CODE_D,
+        a.code_E                              as ID_CODE_E,
+        a.code_F                              as ID_CODE_F,
+        a.code_G                              as ID_CODE_G,
+        a.code_H                              as ID_CODE_H,
+        a.code_I                              as ID_CODE_I,
+        a.code_J                              as ID_CODE_J,
+        'Projeto'                                    as TIPO_REFERENCIA,
+        to_char(a.project_id)                                        as REFERENCIA
+
+FROM ifslaf.PREL_INVOICE_POSTING2 a 
+WHERE A.PRJREP_POSTING_STATUS_db in ('ERROR','PRELIMINARY')) subtab
