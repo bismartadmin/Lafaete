@@ -1,0 +1,71 @@
+SELECT B.ORDER_NO                                                                     ID_OC,
+       B.line_no                                                                      ID_LINHA_OC,
+       B.release_no                                                                   ID_LIBERACAO_OC,
+       ifslaf.purchase_order_api.get_VENDOR_NO(B.ORDER_NO)                            ID_FORNECEDOR,
+       b.date_entered                                                                 DATA_CRIACAO_OC,
+       IFSLAF.PURCHASE_ORDER_API.Get_Order_Date(B.order_no)                           DATA_CONFIRMACAO_OC,
+       C.FISCAL_NOTE_ID                                                               ID_NOTA_FISCAL,
+       'Nota fiscal final'                                                            TIPO_NF,
+       G.fiscal_note_no                                                               N_NOTA_FISCAL,
+       G.document_no                                                                  TIPO_DOCUMENTO,
+       G.creation_date                                                                DATA_CRIACAO,  
+       g.emission_date                                                                DATA_EMISSAO,
+       g.entry_date                                                                   DATA_ENTRADA,
+       c.UNITARY_PRICE * c.ITEM_QUANTITY                                              VALOR_ENTRADA,
+       G.state                                                                        STATUS_NF,
+       c.invoice_id                                                                   ID_TITULO_FORN,
+       d.STATE                                                                        STATUS_TITULO_FORN,
+       d.DUE_DATE                                                                     DATA_VENC_ORIGINAL,
+       D.PL_PAY_DATE                                                                  DATA_VENCIMENTO,
+       GREATEST(TO_DATE(B.objversion,'YYYY/MM/DD HH24:MI:SS'),TO_DATE(C.objversion,'YYYY/MM/DD HH24:MI:SS'),TO_DATE(G.objversion,'YYYY/MM/DD HH24:MI:SS')) ULT_ATUALIZACAO
+       
+
+       
+  FROM IFSLAF.PURCHASE_ORDER_LINE_ALL B
+  JOIN IFSLAF.FISCAL_NOTE_ITEM C ON (B.ORDER_NO = IFSLAF.FN_CUST_PURC_ORDER_API.GET_ORDER_NO(C.FISCAL_NOTE_ID, C.ITEM_NUMBER) AND
+                                          B.LINE_NO = IFSLAF.FN_CUST_PURC_ORDER_API.GET_LINE_NO(C.FISCAL_NOTE_ID, C.ITEM_NUMBER) AND
+                                          B.RELEASE_NO = IFSLAF.FN_CUST_PURC_ORDER_API.GET_REL_NO(C.FISCAL_NOTE_ID, C.ITEM_NUMBER) AND
+                                          B.PART_NO = C.PART_NO and
+                                          ifslaf.FISCAL_NOTE_api.Get_Input_Output_Type_Db(fiscal_note_id_ => c.FISCAL_NOTE_ID) = 1 and
+                                          IFSLAF.FISCAL_NOTE_API.GET_STATE(C.FISCAL_NOTE_ID) <> 'Cancelado')
+  LEFT JOIN ifslaf.MAN_SUPP_INVOICE d ON d.INVOICE_ID = c.invoice_id
+  JOIN IFSLAF.FISCAL_NOTE G ON c.FISCAL_NOTE_ID = G.fiscal_note_id
+                                          
+                                        
+WHERE b.STATE <> 'Cancelado' 
+
+
+UNION ALL
+
+SELECT B.ORDER_NO                                                                         ID_OC,
+       B.line_no                                                                          ID_LINHA_OC,
+       B.release_no                                                                       ID_LIBERACAO_OC,
+       ifslaf.purchase_order_api.get_VENDOR_NO(B.ORDER_NO)                                ID_FORNECEDOR,
+       B.date_entered                                                                     DATA_CRIACAO_OC,
+       IFSLAF.PURCHASE_ORDER_API.Get_Order_Date(B.order_no)                               DATA_CONFIRMACAO_OC,
+       E.FISCAL_NOTE_ID                                                                   ID_NOTA_FISCAL,
+       'Nota fiscal temporaria'                                                           TIPO_NF,
+       F.fiscal_note_no                                                                   N_NOTA_FISCAL,
+       F.document_no                                                                      TIPO_DOCUMENTO,
+       f.creation_date                                                                    DATA_CRIACAO,  
+       F.emission_date                                                                    DATA_EMISSAO,
+       F.entry_date                                                                       DATA_ENTRADA,
+       E.UNITARY_PRICE * E.ITEM_QUANTITY                                                  VALOR_ENTRADA,
+       F.state                                                                            STATUS_NF,
+       NULL                                                                               ID_TITULO_FORN,
+       NULL                                                                               STATUS_TITULO_FORN,
+       NULL                                                                               DATA_VENC_ORIGINAL,
+       NULL                                                                               DATA_VENCIMENTO,
+       GREATEST(TO_DATE(B.objversion,'YYYY/MM/DD HH24:MI:SS'),TO_DATE(E.objversion,'YYYY/MM/DD HH24:MI:SS'),TO_DATE(F.objversion,'YYYY/MM/DD HH24:MI:SS')) ULT_ATUALIZACAO
+  FROM IFSLAF.PURCHASE_ORDER_LINE_ALL B
+  JOIN IFSLAF.FISCAL_NOTE_ITEM_TEMP E ON (B.ORDER_NO = IFSLAF.FN_CUST_PURC_ORDER_API.GET_ORDER_NO(E.FISCAL_NOTE_ID, E.ITEM_NUMBER) AND
+                                          B.LINE_NO = IFSLAF.FN_CUST_PURC_ORDER_API.GET_LINE_NO(e.FISCAL_NOTE_ID, E.ITEM_NUMBER) AND
+                                          B.RELEASE_NO = IFSLAF.FN_CUST_PURC_ORDER_API.GET_REL_NO(E.FISCAL_NOTE_ID, e.ITEM_NUMBER) AND
+                                          B.PART_NO = E.PART_NO and
+                                          ifslaf.FISCAL_NOTE_TEMP_api.Get_Input_Output_Type_Db(fiscal_note_id_ => E.FISCAL_NOTE_ID) = 1 and
+                                          IFSLAF.FISCAL_NOTE_TEMP_API.GET_STATE(E.FISCAL_NOTE_ID) <> 'Cancelado')
+ JOIN IFSLAF.FISCAL_NOTE_TEMP F ON E.FISCAL_NOTE_ID = F.fiscal_note_id
+
+                                          
+                                        
+WHERE b.STATE <> 'Cancelado'
