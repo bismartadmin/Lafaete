@@ -1,0 +1,10 @@
+SELECT A.project_id                         ID_PROJETO,
+       A.sub_project_description            DESC_SUB_PROJETO,
+       A.activity_seq                       ID_ATIVIDADE,
+       A.activity_description               DESC_ATIVIDADE,
+       A.emp_no                             ID_RESPONSAVEL,
+       A.emp_name                           DESC_RESPONSAVEL,
+       A.account_date                       DATA,
+       IFSLAF.Project_Transaction_Api.Get_Interval_Hours(A.emp_no, A.account_date, A.account_date, A.activity_seq, A.company_id) HORAS
+
+FROM IFSLAF.PROJECT_ACTIVITY_HOURS A
