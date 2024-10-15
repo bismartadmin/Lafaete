@@ -1,0 +1,23 @@
+select a.CF$_ID_PROPOSTA                                  N_NEGOCIACAO,
+       A.CF$_STATUS                                       STATUS,
+       A.CF$_CLIENTE                                      DESC_CLIENTE,
+       A.cf$_DESC_Origem                                  DESC_ORIGEM_ATENDIMENTO,
+       A.cf$_DESC_Mercado                                 DESC_MERCADO,
+       A.CF$_PROJETO                                      ID_PROJETO,
+       A.CF$_PROBABILIDADE                                PROBABILIDADE_FECHAMENTO,
+       A.CF$_DATA_PROPOSTA                                DATA_PROPOSTA,
+       A.CF$_DATA_PREV                                    DATA_PREVISTA_INICIO,
+       A.CF$_DATA_FECHAMENTO                              DATA_FECHAMENTO,
+       A.CF$_DESC_GANHO_PERDA                             DESC_MOTIVO_PERDA_GANHO,
+       A.CF$_NOME_CONTATO                                 NOME_CONTATO,
+       A.CF$_TELEFONE_CONTATO                             TELEFONE_CONTATO,
+       A.CF$_EMAIL_CONTATO                                EMAIL_CONTATO,
+       A.CF$_PRODUTO                                      PRODUTO,
+       A.CF$_QTDE                                         QTDE,
+       A.cf$_Unidade_Medida                               UNIDADE_MEDIDA,
+       A.CF$_VALOR_UNITARIO                               VALOR_UNITARIO,
+       A.CF$_VALOR_UNITARIO * A.CF$_QTDE                  VALOR_TOTAL,
+       TO_DATE(a.objversion,'YYYY/MM/DD HH24:MI:SS')      ULT_ATUALIZACAO,
+       A.CF$_OBSERVACAO                                   OBSERVACAO
+                                         
+from ifslaf.L_A_F3_I_P_R_E_C_A_S_T_CLV a
