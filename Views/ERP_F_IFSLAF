@@ -1,0 +1,5 @@
+select a.CF$_USUARIO      USUARIO,
+       A.CF$_DATA_SESSAO  DATA_INICIO_SESSAO,
+       A.CF$_COMPUTADOR   COMPUTADOR 
+
+from ifslaf.LAFLOG_I_F_S_L_A_F_CLV a
