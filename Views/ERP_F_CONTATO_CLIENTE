@@ -1,0 +1,18 @@
+SELECT A.person_id                    ID_CONTATO,
+       a.person_name                  DESC_CONTATO,
+       COALESCE(A.mobile,A.phone)     TELEFONE,
+       A.email                        EMAIL,
+       A.customer_id                  ID_CLIENTE,
+       A.customer_name                DESC_CLIENTE,
+       A.customer_category            CATEGORIA_CLIENTE,
+       A.market_desc                  DESC_MERCADO,
+       A.source_id                    ORIGEM_ATENDIMENTO,
+       A.crm_main_representative_id   ID_REPRESENTANTE,
+       A.crm_main_representative_name DESC_REPRESENTANTE,
+       b.DATE_ENTERED                 DATA_ULT_NPS,
+       B.CF$_NPS_ANSWER               ULT_NPS
+
+
+FROM IFSLAF.CUSTOMER_INFO_CONTACT_CRM_PUB A
+OUTER APPLY (SELECT B.DATE_ENTERED, B.CF$_NPS_ANSWER FROM IFSLAF.BUSINESS_ACTIVITY_CFV B WHERE B.CF$_NPS_ANSWER IS NOT NULL AND B.MAIN_CONTACT_ID = A.person_id ORDER BY  b.DATE_ENTERED DESC FETCH FIRST ROW ONLY) B
+WHERE a.BLOCKED_FOR_CRM_OBJECTS_DB = 'FALSE' AND a.person_id NOT IN ('4511','4512')
