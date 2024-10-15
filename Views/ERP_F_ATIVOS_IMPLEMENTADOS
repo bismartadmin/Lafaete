@@ -1,0 +1,28 @@
+select C.SERIAL_NO          SERIAL,
+       IFSLAF.Inventory_Part_API.Get_Description(C.CONTRACT,C.PART_NO) DESC_IMPLEMENTO,
+       A.ERR_DESCR          DESCRICAO_OS,
+       A.wo_no              ID_OS,
+       A.real_f_date        DATA_CONCLUSAO,
+       A.mch_code           SERIAL_IMPLEMENTADO,
+       A.MCH_CODE_DESCRIPTION DESC_SERIAL_IMPLEMENTADO,
+       C.USERID             USUARIO,
+       C.RECEIPT_DATE       DATA_BAIXA,
+       (E.VALOR_AQUISICAO / (1 - 0.0925))                                       VALOR_AQUISICAO
+       
+from ifslaf.HISTORICAL_SEPARATE_UIV a 
+JOIN IFSLAF.MAINT_MATERIAL_REQ_LINE_UIV B ON A.wo_no = B.wo_no
+JOIN ifslaf.INVENTORY_TRANSACTION_HIST c ON B.wo_no = C.SOURCE_REF1 AND B.task_seq = C.SOURCE_REF2 AND B.maint_material_order_no = C.SOURCE_REF3 AND B.line_item_no = C.SOURCE_REF4 AND (c.TRANSACTION_CODE = 'WOISS' OR c.TRANSACTION_CODE = 'WOREPISS') AND ((c.QUANTITY)>0 OR (c.QTY_REVERSED)>0) 
+OUTER APPLY (SELECT UBV.VALUE VALOR_AQUISICAO
+                FROM IFSLAF.USRDEFINED_BASE_VALUE UBV
+               WHERE UBV.COMPANY = c.company
+                 AND UBV.OBJECT_ID = c.SERIAL_NO
+               ORDER BY UBV.VALUE     DESC,
+                        UBV.FROM_DATE DESC
+               FETCH FIRST ROW ONLY) E
+where a.WORK_TYPE_ID = 'MOD' AND A.WO_STATUS_ID = 'FINISHED' AND B.maint_mat_ord_state = 'Closed' AND A.MCH_CODE <> C.SERIAL_NO and a.company = '01' and c.QTY_REVERSED = 0
+and a.wo_no = (  select d.wo_no from  ifslaf.HISTORICAL_SEPARATE_UIV d 
+JOIN IFSLAF.MAINT_MATERIAL_REQ_LINE_UIV e ON d.wo_no = e.wo_no
+JOIN ifslaf.INVENTORY_TRANSACTION_HIST c ON e.wo_no = C.SOURCE_REF1 AND e.task_seq = C.SOURCE_REF2 AND e.maint_material_order_no = C.SOURCE_REF3 AND e.line_item_no = C.SOURCE_REF4 AND (c.TRANSACTION_CODE = 'WOISS' OR c.TRANSACTION_CODE = 'WOREPISS') AND ((c.QUANTITY)>0 OR (c.QTY_REVERSED)>0) 
+where D.WORK_TYPE_ID = 'MOD' AND D.WO_STATUS_ID = 'FINISHED' AND E.maint_mat_ord_state = 'Closed' AND D.MCH_CODE <> C.SERIAL_NO and d.company = '01' and c.QTY_REVERSED = 0
+and d.mch_code = A.mch_code
+order by    c.RECEIPT_DATE  desc FETCH FIRST ROW ONLY)
