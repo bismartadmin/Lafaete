@@ -1,0 +1,11 @@
+SELECT  a.representative_id ID_REPRESENTANTE,
+        ifslaf.PERSON_INFO_API.Get_Name(a.REPRESENTATIVE_ID) DESC_REPRESENTANTE,
+        a.representative_type DESC_EQUIPE,
+        NVL(a.CF$_COMMISSION_RECIPIENT,'NAO') RECEBE_COMISSAO,
+        a.state STATUS_REPRESENTANTE,
+        ifslaf.SALES_PART_SALESMAN_API.Get_State(a.representative_id) STATUS_VENDEDOR,
+        A.CF$_E_MAIL                                                           E_MAIL,
+        'https://drive.google.com/uc?id='||A.CF$_IMAGE                FOTO
+        
+FROM ifslaf.BUSINESS_REPRESENTATIVE_CFV a
+where a.REPRESENTATIVE_ID not in ('IFSLAF','*')
