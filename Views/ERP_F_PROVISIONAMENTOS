@@ -1,0 +1,33 @@
+SELECT A.voucher_no                                                                                             N_LANCTO,
+       A.voucher_date                                                                                           DATA_LANCTO,
+       A.reference_number                                                                                       N_REFERENCIA,
+       A.account                                                                                                ID_CODE_A_CONTA,
+       A.account_desc                                                                                           DESC_CODE_A_CONTA,
+       A.company                                                                                                ID_EMPRESA,
+       A.code_h                                                                                                 ID_CODE_H_APR_CUSTO,
+       A.code_b                                                                                                 ID_CODE_B_CR,
+       A.code_c                                                                                                 ID_CODE_C_SITE,
+       A.code_d                                                                                                 ID_CODE_D_NATUREZA,
+       A.code_G                                                                                                 ID_CODE_G_LINHA,
+       a.code_f                                                                                                 ID_CODE_F_PROJETO,
+       A.code_i                                                                                                 ID_CODE_I_NEGOCIO,
+       A.party_type_id                                                                                          ID_PARCERIO,
+       A.party_NAME                                                                                             DESC_PARCEIRO,
+       A.amount                                                                                                 VALOR_CONTAB
+
+FROM ifslaf.GEN_LED_VOUCHER_ROW_UNION_QRY a
+JOIN IFSLAF.LAFLANCTOSPROVISIONAMENTO_CLV B
+ON A.voucher_no = B.CF$_N_LANCTO
+AND A.company = B.CF$_ID_EMPRESA
+AND A.voucher_date = B.CF$_DATA_LANCTO
+AND A.voucher_type = B.CF$_TIPO_LANCTO
+WHERE CASE A.account_type
+         WHEN 'REVENUES' THEN
+          'RECEITA'
+         WHEN 'LIABILITIES' THEN
+          'PASSIVO'
+         WHEN 'ASSETS' THEN
+          'ATIVOS'
+         ELSE
+          'DESPESA'
+       END = 'DESPESA'
