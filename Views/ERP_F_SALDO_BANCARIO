@@ -1,0 +1,46 @@
+select a.SHORT_NAME            ID_CONTA_MOV,
+       A.DESCRIPTION            DESC_CONTA_MOV,
+       A.company                ID_EMPRESA,
+       A.company||'-'||A.short_name CHAVE_EMPRESA_CONTA,
+       A.INSTITUTE_CODE         ID_BANCO,
+       A.OFFICE_CODE            AGENCIA,
+       A.INSTITUTE_ID           DESC_BANCO,
+       A.ACCOUNT_IDENTITY       CONTA,
+       B.BALANCE_DATE,
+       B.balance_date_base,
+       B.calculated_debit       VALOR_ENTRADA_CAIXA,
+       B.calculated_credit      VALOR_SAIDA_CAIXA,
+       B.CALCULATED_BALANCE     SALDO_CAIXA
+
+from ifslaf.CASH_ACCOUNT a JOIN ifslaf.CASH_ACCOUNT_BALANCE_QRY b ON A.COMPANY = B.company AND A.short_name = B.short_name
+
+WHERE b.BALANCE_DATE_BASE = 'VOUDATE'
+--AND a.short_name = 'CA SANT-13001985-9'
+
+UNION ALL
+
+SELECT
+      b.SHORT_NAME            ID_CONTA_MOV,
+       B.DESCRIPTION            DESC_CONTA_MOV,
+       B.company                ID_EMPRESA,
+       B.company||'-'||B.short_name CHAVE_EMPRESA_CONTA,
+       B.INSTITUTE_CODE         ID_BANCO,
+       B.OFFICE_CODE            AGENCIA,
+       B.INSTITUTE_ID           DESC_BANCO,
+       B.ACCOUNT_IDENTITY       CONTA,
+       b.data,
+       a.balance_date_base,
+       0       VALOR_ENTRADA_CAIXA,
+       0      VALOR_SAIDA_CAIXA,
+       A.CALCULATED_BALANCE     SALDO_CAIXA
+  FROM IFSLAF.CASH_ACCOUNT_BALANCE_QRY A
+ JOIN ifslaf.CASH_ACCOUNT b ON A.COMPANY = B.company AND A.short_name = B.short_name
+ INNER JOIN (SELECT TRUNC((DATE '2021-01-01') + LEVEL - 1) AS DATA FROM DUAL CONNECT BY LEVEL <= (SYSDATE - (DATE '2021-01-01') + 1)) B ON (A.BALANCE_DATE <> B.DATA)
+  WHERE A.BALANCE_DATE = (SELECT MAX(C.BALANCE_DATE)
+                           FROM IFSLAF.CASH_ACCOUNT_BALANCE_QRY C
+                          WHERE C.BALANCE_DATE_BASE = A.BALANCE_DATE_BASE
+                            AND C.COMPANY = A.COMPANY
+                            AND C.SHORT_NAME = A.SHORT_NAME
+                            AND C.balance_date <= B.DATA)
+   AND A.BALANCE_DATE_BASE = 'VOUDATE'
+  -- AND A.SHORT_NAME = 'CA SANT-13001985-9'
