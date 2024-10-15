@@ -1,0 +1,41 @@
+SELECT 'PROVISAO RESCISAO'  TIPO_MOVIMENTO,
+       a.TIPO_CONTA_AJUST,
+       a.N_LANCTO,
+       a.DATA_LANCTO,
+       a.ID_EMPRESA,
+       a.ID_CODE_A_CONTA,
+       a.DESC_CODE_A_CONTA,
+       a.DESC_GRUPO_CONTA_CONTAB,
+       a.ID_CODE_B_CR,
+       a.ID_CODE_C_SITE,
+       a.ID_CODE_D_NATUREZA,
+       a.ID_CODE_F_PROJETO,
+       a.ID_CODE_G_LINHA,
+       a.ID_CODE_H_APR_CUSTO,
+       COALESCE(a.ID_CODE_I_NEGOCIO,CASE NVL(a.ID_CODE_H_APR_CUSTO, ' ')
+                    WHEN '03' THEN CASE a.ID_CODE_B_CR WHEN '0025' THEN '03' ELSE '07' END
+                    WHEN '09' THEN CASE a.ID_CODE_B_CR WHEN '0025' THEN '03' WHEN '0026' THEN '07'WHEN '0027' THEN '07'ELSE '01' END
+                    WHEN '10' THEN CASE a.ID_CODE_B_CR WHEN '0025' THEN '03' WHEN '0026' THEN '07'WHEN '0027' THEN '07'ELSE '01' END
+                    WHEN '11' THEN CASE a.ID_CODE_B_CR WHEN '0025' THEN '03' WHEN '0026' THEN '07'WHEN '0027' THEN '07'ELSE '01' END
+                    WHEN '12' THEN '05'
+                    WHEN '14' THEN '04'
+                    WHEN '18' THEN '07'
+                    WHEN '19' THEN '07'
+                    WHEN '24' THEN '07'
+                    WHEN '26' THEN '07'
+                    WHEN '28' THEN '05'
+                    WHEN '37' THEN '07'
+                    WHEN '38' THEN '07'
+                    WHEN '40' THEN '09'
+                    WHEN '41' THEN '08'
+                    WHEN '42' THEN '07'
+                    WHEN '43' THEN '07'
+                    WHEN '44' THEN '08'
+                    WHEN '45' THEN '02'
+                    ELSE CASE a.ID_CODE_B_CR WHEN '0002' THEN '01' END
+               END) AS ID_CODE_I_NEGOCIO,
+               a.VALOR_CONTAB
+
+FROM IFSINFO.ERP_F_LANCTO_CONTAB a
+WHERE a.ID_CODE_A_CONTA IN ('4120100031','4120100032','4120100033')
+AND a.ID_TIPO_LANCTO <> 'ENC'
