@@ -1,0 +1,98 @@
+SELECT SUBTAB.OPORTUNIDADE  ID_OPORTUNIDADE,
+       SUBTAB.ID_EMPRESA    ID_EMPRESA, 
+       SUBTAB.ID_SITE       ID_SITE,
+       SUBTAB.DESCRICAO     DESCRICAO_OPORTUNIDADE,
+       SUBTAB.CLIENTE       DESC_CLIENTE,
+       SUBTAB.CASO          ID_CASO,
+       SUBTAB.ID_TAREFA,
+       SUBTAB.ATIVIDADE,
+       SUBTAB.FILA_AJUSTADA,
+       SUBTAB.CRIADO_POR,
+       SUBTAB.DATA_CRIACAO,
+       SUBTAB.DONO_TAREFA,
+       SUBTAB.DATA_VENCIMENTO,
+       SUBTAB.SOLICITACAO,
+       SUBTAB.RESPOSTA,
+       SUBTAB.DATA_FECHAMENTO,
+       SUBTAB.STATUS,
+       CASE
+         WHEN SUBTAB.OBJSTATE IN ('Open', 'Queued') THEN
+          CASE
+            WHEN B.WORK_DAYS IS NOT NULL THEN
+             CASE
+               WHEN TRUNC(SUBTAB.DATA_VENCIMENTO) >= TRUNC(SYSDATE) THEN
+                'NO PRAZO'
+               WHEN TRUNC(SUBTAB.DATA_VENCIMENTO + B.WORK_DAYS) >= TRUNC(SYSDATE) THEN
+                'ATRASADO'
+               ELSE
+                'MUITO ATRASADO'
+             END
+            ELSE
+             CASE
+               WHEN SUBTAB.DATA_VENCIMENTO >= SYSDATE THEN
+                'NO PRAZO'
+               WHEN SUBTAB.DATA_VENCIMENTO + B.WORK_HOURS / 24 >= SYSDATE THEN
+                'ATRASADO'
+               ELSE
+                'MUITO ATRASADO'
+             END
+          END
+         ELSE
+          NULL
+       END PRAZO_ABERTAS,
+
+       CASE
+         WHEN SUBTAB.OBJSTATE IN ('Closed', 'Completed') THEN
+          CASE
+            WHEN B.WORK_DAYS IS NOT NULL THEN
+             CASE
+               WHEN TRUNC(SUBTAB.DATA_VENCIMENTO) >= TRUNC(SUBTAB.DATA_FECHAMENTO) THEN
+                'NO PRAZO'
+               WHEN TRUNC(SUBTAB.DATA_VENCIMENTO + B.WORK_DAYS) >=
+                    TRUNC(SUBTAB.DATA_FECHAMENTO) THEN
+                'ATRASADO'
+               ELSE
+                'MUITO ATRASADO'
+             END
+            ELSE
+             CASE
+               WHEN SUBTAB.DATA_VENCIMENTO >= SUBTAB.DATA_FECHAMENTO THEN
+                'NO PRAZO'
+               WHEN SUBTAB.DATA_VENCIMENTO + B.WORK_HOURS / 24 >=
+                    SUBTAB.DATA_FECHAMENTO THEN
+                'ATRASADO'
+               ELSE
+                'MUITO ATRASADO'
+             END
+          END
+         ELSE
+          NULL
+       END PRAZO_CONCLUIDAS
+  FROM (SELECT A.CF$_OPPORTUNITY_NO OPORTUNIDADE,
+               A.CF$_DESCRIPTION_OPPORTUNIT DESCRICAO,
+               A.CF$_CUSTOMER_OPPORTUNITY CLIENTE,
+               A.CASE_ID CASO,
+               A.TASK_ID ID_TAREFA,
+               A.ACTIVITY_NAME ATIVIDADE,
+               COALESCE(A.QUEUE,  IFSLAF.CC_CASE_WORK_GROUP_API.Get_Description(work_group_id_ => IFSLAF.CC_CASE_TRACKER_API.Get_Work_Group_Id(identity_ => A.changed_by))) FILA_AJUSTADA,
+               A.CREATED_BY CRIADO_POR,
+               A.CREATED DATA_CRIACAO,
+               A.TASK_OWNER DONO_TAREFA,
+               A.DUE_DATE DATA_VENCIMENTO,
+               A.REQUEST SOLICITACAO,
+               A.CF$_CASE_TASK_ANSWER RESPOSTA,
+               A.CF$_COMPANY ID_EMPRESA,
+               SUBSTR(A.CF$_CONTRACT, 1, 2) ID_SITE,
+               CASE A.OBJSTATE
+                 WHEN 'Completed' THEN
+                  A.CHANGED
+                 ELSE
+                  NULL
+               END DATA_FECHAMENTO,
+               A.STATE STATUS,
+               A.OBJSTATE,
+               IFSLAF.CC_CASE_TASK_API.Get_Task_Activity_Id(A.CASE_ID,
+                                                            A.TASK_ID) ACTIVITY_ID
+          FROM IFSLAF.CC_CASE_TASK_OVERVIEW_CFV A) SUBTAB
+ LEFT JOIN IFSLAF.CC_CASE_TASK_ACTIVITY B
+    ON (SUBTAB.ACTIVITY_ID = B.TASK_ACTIVITY_ID)
