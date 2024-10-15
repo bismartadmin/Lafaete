@@ -1,0 +1,3 @@
+select  DISTINCT (a.CODE_H) ID_CODE_H_APR_CUSTO,
+        A.description DESC_CODE_H_APR_CUSTO
+        from IFSLAF.CODE_H a
