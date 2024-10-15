@@ -1,0 +1,18 @@
+SELECT A.company                                              ID_EMPRESA,
+       a.year_period                                          DATA_PERIODO,
+       A.company||'-'||A.account                              CHAVE_EMPRESA_CONTA,
+       a.account                                              ID_CODE_A_CONTA,
+       A.account_desc                                         DESC_CODE_A_CONTA,
+       A.CODE_B                                               ID_CODE_B_CR,
+       A.CODE_C                                               ID_CODE_C_SITE,
+       A.CODE_D                                               ID_CODE_D_NATUREZA,
+       A.CODE_E                                               ID_CODE_E_ATIVO,
+       A.CODE_F                                               ID_CODE_F_PROJETO,
+       A.CODE_G                                               ID_CODE_G_LINHA,
+       A.CODE_H                                               ID_CODE_H_APR_CUSTO,
+       A.CODE_I                                               ID_CODE_I_NEGOCIO,
+       a.debet_balance                                        VALOR_DEBITO,
+       A.credit_balance                                       VALOR_CREDITO,
+       A.amount_balance                                       MOV_PERIODO
+
+FROM ifslaf.ACCOUNTING_BALANCE_AUTH a
