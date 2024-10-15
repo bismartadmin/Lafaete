@@ -1,0 +1,22 @@
+select a.SHORT_NAME            ID_CONTA_MOV,
+       A.DESCRIPTION            DESC_CONTA_MOV,
+       A.company                ID_EMPRESA,
+       A.company||'-'||A.short_name CHAVE_EMPRESA_CONTA,
+       A.INSTITUTE_CODE         ID_BANCO,
+       A.OFFICE_CODE            AGENCIA,
+       A.INSTITUTE_ID           DESC_BANCO,
+       A.ACCOUNT_IDENTITY       CONTA,
+       b.TRANSACTION_CODE_ID    TRANSACAO_BANCARIA,
+       case b.series_id
+         when 'SUPAY' THEN 'Pagto Fornecedor'
+         when 'CUPAY' THEN 'Receb Cliente'
+         when 'GNPAY' THEN 'Pagto Diversos' END AS TIPO_TRANSACAO,
+       b.voucher_date           DATA_LANCTO,
+       B.VOUCHER_NO             LANCTO,
+       B.CURR_AMOUNT            VALOR,
+       B.SERIES_ID              ID_SERIE,
+       B.PAYMENT_ID             ID_PAGTO,
+       B.MATCH_TRANS            CONCILIADA
+       
+from ifslaf.CASH_ACCOUNT a 
+JOIN ifslaf.CASH_TRANSACTION_CU_QRY b ON A.COMPANY = B.company AND A.short_name = B.short_name
