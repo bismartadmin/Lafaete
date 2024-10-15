@@ -1,0 +1,377 @@
+WITH FAMILY AS (
+        SELECT CAST('54' AS VARCHAR2(5))             AS CONTRACT,
+               CAST('EST000003 IMP' AS VARCHAR2(25)) AS PART_NO,
+               DATE '2024-09-30'                     AS VALID_UNTIL_DATE,
+               CAST('0008' AS VARCHAR2(5))           AS PART_PRODUCT_FAMILY
+          FROM DUAL
+         UNION ALL
+        SELECT CAST('54' AS VARCHAR2(5)),
+               CAST('EST000004 IMP' AS VARCHAR2(25)),
+               DATE '2024-09-30',
+               CAST('0008' AS VARCHAR2(5))
+          FROM DUAL
+         UNION ALL
+        SELECT CAST('54' AS VARCHAR2(5)),
+               CAST('EST000030 IMP' AS VARCHAR2(25)),
+               DATE '2024-09-30',
+               CAST('0008' AS VARCHAR2(5))
+          FROM DUAL
+         UNION ALL
+        SELECT CAST('54' AS VARCHAR2(5)),
+               CAST('EST000041 IMP' AS VARCHAR2(25)),
+               DATE '2024-09-30',
+               CAST('0008' AS VARCHAR2(5))
+          FROM DUAL
+         UNION ALL
+        SELECT CAST('54' AS VARCHAR2(5)),
+               CAST('EST000043 IMP' AS VARCHAR2(25)),
+               DATE '2024-09-30',
+               CAST('0008' AS VARCHAR2(5))
+          FROM DUAL
+         UNION ALL
+        SELECT CAST('54' AS VARCHAR2(5)),
+               CAST('EST000044 IMP' AS VARCHAR2(25)),
+               DATE '2024-09-30',
+               CAST('0008' AS VARCHAR2(5))
+          FROM DUAL
+         UNION ALL
+        SELECT CAST('54' AS VARCHAR2(5)),
+               CAST('EST000045 IMP' AS VARCHAR2(25)),
+               DATE '2024-09-30',
+               CAST('0008' AS VARCHAR2(5))
+          FROM DUAL
+         UNION ALL
+        SELECT CAST('54' AS VARCHAR2(5)),
+               CAST('EST000177 IMP' AS VARCHAR2(25)),
+               DATE '2024-09-30',
+               CAST('0008' AS VARCHAR2(5))
+          FROM DUAL
+         UNION ALL
+        SELECT CAST('54' AS VARCHAR2(5)),
+               CAST('EST031434' AS VARCHAR2(25)),
+               DATE '2024-09-30',
+               CAST('0052' AS VARCHAR2(5))
+          FROM DUAL)
+
+SELECT SUBTAB.ID_TRANSACAO,
+       SUBTAB.DATA_CRIACAO,
+       SUBTAB.DATA_UTILIZACAO,
+       SUBTAB.COD_TRANSACAO,
+       IFSLAF.MPCCOM_SYSTEM_EVENT_API.GET_DESCRIPTION(SUBTAB.COD_TRANSACAO) AS DESC_TRANSACAO,
+       SUBTAB.ID_MATERIAL,
+       IFSLAF.INVENTORY_PART_API.GET_DESCRIPTION(SUBTAB.ID_SITE, SUBTAB.ID_MATERIAL) AS DESC_MATERIAL,
+       IFSLAF.INVENTORY_LOCATION_API.GET_LOCATION_NAME(SUBTAB.ID_SITE, SUBTAB.ID_LOCAL_ESTOQUE) AS LOCAL_ESTOQUE,
+       SUBTAB.ID_SITE,
+       SUBTAB.ID_EMPRESA,
+       SUBTAB.ID_MATERIAL || '-' || SUBTAB.ID_SITE AS CHAVE_MATERIAL_SITE,
+       SUBTAB.PRE_ACCOUNTING_ID,
+       SUBTAB.ID_CODE_A_CONTA_CONTAB,
+       SUBTAB.ID_CODE_B_CR,
+       SUBTAB.ID_CODE_C_SITE,
+       SUBTAB.ID_CODE_D_NATUREZA,
+       SUBTAB.ID_CODE_E_ATIVO,
+       SUBTAB.ID_CODE_F_PROJETO,
+       SUBTAB.ID_CODE_G_LINHA,
+       SUBTAB.ID_CODE_H_APR_CUSTO,
+       SUBTAB.ID_CODE_I_NEGOCIO,
+       SUBTAB.USUARIO,
+       SUBTAB.SERIAL,
+       SUBTAB.QTDE,
+       SUBTAB.VALOR_UNITARIO,
+       SUBTAB.VALOR_TOTAL,
+       SUBTAB.ULT_ATUALIZACAO,
+       SUBTAB.N_REQUISICAO_MATERIAL,
+       SUBTAB.N_ORDEM_SERVICO,
+       SUBTAB.M_ORDEM_FABRICACAO,
+       SUBTAB.N_LANCTO
+  FROM (SELECT A.TRANSACTION_ID                                                   AS ID_TRANSACAO,
+               A.DATE_CREATED                                                     AS DATA_CRIACAO,
+               A.DATE_APPLIED                                                     AS DATA_UTILIZACAO,
+               A.TRANSACTION_CODE                                                 AS COD_TRANSACAO,
+               A.PART_NO                                                          AS ID_MATERIAL,
+               A.LOCATION_NO                                                      AS ID_LOCAL_ESTOQUE,
+               A.CONTRACT                                                         AS ID_SITE,
+               IFSLAF.COMPANY_SITE_API.GET_COMPANY(A.CONTRACT)                    AS ID_EMPRESA,
+               A.PRE_ACCOUNTING_ID,
+               C.ACCOUNT_NO                                                       AS ID_CODE_A_CONTA_CONTAB,
+               C.CODENO_B                                                         AS ID_CODE_B_CR,
+               C.CODENO_C                                                         AS ID_CODE_C_SITE,
+               C.CODENO_D                                                         AS ID_CODE_D_NATUREZA,
+               C.CODENO_E                                                         AS ID_CODE_E_ATIVO,
+               C.CODENO_F                                                         AS ID_CODE_F_PROJETO,
+               C.CODENO_G                                                         AS ID_CODE_G_LINHA,
+               C.CODENO_H                                                         AS ID_CODE_H_APR_CUSTO,
+               C.CODENO_I                                                         AS ID_CODE_I_NEGOCIO,
+               A.USERID                                                           AS USUARIO,
+               A.SERIAL_NO                                                        AS SERIAL,
+               A.QUANTITY                                                         AS QTDE,
+               A.COST * CASE A.DIRECTION WHEN '-' THEN 1 ELSE -1 END              AS VALOR_UNITARIO,
+               A.COST * CASE A.DIRECTION WHEN '-' THEN 1 ELSE -1 END * A.QUANTITY AS VALOR_TOTAL,
+               TO_DATE(A.OBJVERSION,'YYYY/MM/DD HH24:MI:SS')                      AS ULT_ATUALIZACAO,
+               A.SOURCE_REF1                                                      AS N_REQUISICAO_MATERIAL,
+               NULL                                                               AS N_ORDEM_SERVICO,
+               NULL                                                               AS M_ORDEM_FABRICACAO,
+               A.C_VOUCHER_NO                                                     AS N_LANCTO
+          FROM IFSLAF.INVENTORY_TRANSACTION_HIST2 A
+          LEFT JOIN IFSLAF.MATERIAL_REQUIS_LINE B ON (A.SOURCE_REF1 = B.ORDER_NO AND A.SOURCE_REF2 = B.LINE_NO AND A.SOURCE_REF3 = B.RELEASE_NO AND A.SOURCE_REF4 = B.LINE_ITEM_NO)
+          LEFT JOIN IFSLAF.PRE_ACCOUNTING C ON (B.PRE_ACCOUNTING_ID = C.PRE_ACCOUNTING_ID)
+         WHERE A.TRANSACTION_CODE IN ('INTSHIP','INTUNISS')
+        
+         UNION ALL
+        
+        SELECT A.TRANSACTION_ID,
+               A.DATE_CREATED,
+               A.DATE_APPLIED,
+               A.TRANSACTION_CODE,
+               A.PART_NO,
+               A.LOCATION_NO,
+               A.CONTRACT,
+               IFSLAF.COMPANY_SITE_API.GET_COMPANY(A.CONTRACT),
+               A.PRE_ACCOUNTING_ID,
+               C.ACCOUNT_NO,
+               C.CODENO_B,
+               C.CODENO_C,
+               C.CODENO_D,
+               C.CODENO_E,
+               C.CODENO_F,
+               C.CODENO_G,
+               C.CODENO_H,
+               C.CODENO_I,
+               A.USERID,
+               A.SERIAL_NO,
+               A.QUANTITY,
+               A.COST,
+               A.COST * A.QUANTITY,
+               TO_DATE(A.OBJVERSION,'YYYY/MM/DD HH24:MI:SS'),
+               NULL,
+               NULL,
+               A.SOURCE_REF1,
+               A.C_VOUCHER_NO
+          FROM IFSLAF.INVENTORY_TRANSACTION_HIST2 A
+          LEFT JOIN IFSLAF.SHOP_MATERIAL_ALLOC_UIV E ON (A.SOURCE_REF1 = E.ORDER_NO AND A.SOURCE_REF2 = E.RELEASE_NO AND A.SOURCE_REF3 = E.SEQUENCE_NO AND A.SOURCE_REF4 = E.LINE_ITEM_NO)
+          LEFT JOIN IFSLAF.PRE_ACCOUNTING C ON (IFSLAF.SHOP_ORD_API.GET_PRE_ACCOUNTING_ID(E.ORDER_NO,E.RELEASE_NO,E.SEQUENCE_NO) = C.PRE_ACCOUNTING_ID)
+         WHERE A.DIRECTION = '-'
+           AND A.TRANSACTION_CODE = 'SOISS'
+
+         UNION ALL
+
+        SELECT A.TRANSACTION_ID,
+               A.DATE_CREATED,
+               A.DATE_APPLIED,
+               A.TRANSACTION_CODE,
+               A.PART_NO,
+               A.LOCATION_NO,
+               A.CONTRACT,
+               IFSLAF.COMPANY_SITE_API.GET_COMPANY(A.CONTRACT),
+               IFSLAF.WORK_ORDER_API.GET_PRE_ACCOUNTING_ID(A.SOURCE_REF1),
+               D.ACCOUNT_NO,
+               D.CODENO_B,
+               D.CODENO_C,
+               D.CODENO_D,
+               D.CODENO_E,
+               D.CODENO_F,
+               D.CODENO_G,
+               D.CODENO_H,
+               D.CODENO_I,
+               A.USERID,
+               A.SERIAL_NO,
+               A.QUANTITY,
+               A.COST,
+               A.COST * A.QUANTITY,
+               TO_DATE(A.OBJVERSION,'YYYY/MM/DD HH24:MI:SS'),
+               NULL,
+               A.SOURCE_REF1,
+               NULL,
+               A.C_VOUCHER_NO
+          FROM IFSLAF.INVENTORY_TRANSACTION_HIST2 A
+         INNER JOIN IFSLAF.INVENTORY_PART         B ON (A.CONTRACT = B.CONTRACT AND A.PART_NO = B.PART_NO)
+          LEFT JOIN IFSLAF.PRE_ACCOUNTING         D ON (IFSLAF.WORK_ORDER_API.GET_PRE_ACCOUNTING_ID(A.SOURCE_REF1) = D.PRE_ACCOUNTING_ID)
+         WHERE A.CONTRACT NOT IN ('41', '44', '48', '54')
+           AND A.DIRECTION = '-'
+           AND A.TRANSACTION_CODE = 'WOISS'
+
+         UNION ALL
+
+        SELECT A.TRANSACTION_ID,
+               A.DATE_CREATED,
+               A.DATE_APPLIED,
+               A.TRANSACTION_CODE,
+               A.PART_NO,
+               A.LOCATION_NO,
+               A.CONTRACT,
+               C.COMPANY,
+               IFSLAF.WORK_ORDER_API.GET_PRE_ACCOUNTING_ID(A.SOURCE_REF1),
+               NVL(F.CODE_A, D.ACCOUNT),
+               NVL(G.CODE_B, D.CODE_B),
+               NVL(H.CODE_C, D.CODE_C),
+               CASE WHEN A.DATE_APPLIED >= (DATE '2024-02-01') THEN E.CF$_NATURE_ID ELSE NVL(I.CODE_D, D.CODE_D) END,
+               NVL(J.CODE_E, D.CODE_E),
+               NVL(K.CODE_F, D.CODE_F),
+               NVL(L.CODE_G, D.CODE_G),
+               NVL(M.CODE_H, D.CODE_H),
+               NVL(N.CODE_I, D.CODE_I),
+               A.USERID,
+               C.MCH_CODE,
+               A.QUANTITY,
+               A.COST,
+               A.COST * A.QUANTITY,
+               TO_DATE(A.OBJVERSION,'YYYY/MM/DD HH24:MI:SS'),
+               NULL,
+               A.SOURCE_REF1,
+               NULL,
+               A.C_VOUCHER_NO
+          FROM IFSLAF.INVENTORY_TRANSACTION_HIST2         A
+         INNER JOIN IFSLAF.INVENTORY_PART                 B ON (A.CONTRACT = B.CONTRACT AND A.PART_NO = B.PART_NO)
+         INNER JOIN IFSLAF.WORK_ORDER                     C ON (A.SOURCE_REF1 = C.WO_NO)
+         INNER JOIN IFSLAF.FA_OBJECT                      D ON (C.COMPANY = D.COMPANY AND C.MCH_CODE = D.OBJECT_ID)
+          LEFT JOIN FAMILY                                O ON (A.CONTRACT = O.CONTRACT AND A.PART_NO = O.PART_NO AND O.VALID_UNTIL_DATE >= A.DATE_APPLIED)
+          LEFT JOIN IFSLAF.LAF_PROD_FAMILY_PARAMETERS_CLV E ON (C.COMPANY = E.CF$_COMPANY_ID AND NVL(O.PART_PRODUCT_FAMILY, B.PART_PRODUCT_FAMILY) = E.CF$_FAMILY_ID)
+         OUTER APPLY (SELECT PRE.CF$_CODE_PART_VALUE AS CODE_A
+                        FROM IFSLAF.LAF_OBJECT_PRE_ACCOUNTING_CLV PRE
+                       WHERE PRE.CF$_COMPANY           = D.COMPANY
+                         AND PRE.CF$_OBJECT_ID         = D.OBJECT_ID
+                         AND PRE.CF$_CODE_PART         = 'A'
+                         AND PRE.CF$_VALID_UNTIL_DATE >= A.DATE_CREATED
+                       ORDER BY PRE.CF$_VALID_UNTIL_DATE DESC
+                       FETCH FIRST ROW ONLY) F
+         OUTER APPLY (SELECT PRE.CF$_CODE_PART_VALUE AS CODE_B
+                        FROM IFSLAF.LAF_OBJECT_PRE_ACCOUNTING_CLV PRE
+                       WHERE PRE.CF$_COMPANY           = D.COMPANY
+                         AND PRE.CF$_OBJECT_ID         = D.OBJECT_ID
+                         AND PRE.CF$_CODE_PART         = 'B'
+                         AND PRE.CF$_VALID_UNTIL_DATE >= A.DATE_CREATED
+                       ORDER BY PRE.CF$_VALID_UNTIL_DATE DESC
+                       FETCH FIRST ROW ONLY) G
+         OUTER APPLY (SELECT PRE.CF$_CODE_PART_VALUE AS CODE_C
+                        FROM IFSLAF.LAF_OBJECT_PRE_ACCOUNTING_CLV PRE
+                       WHERE PRE.CF$_COMPANY           = D.COMPANY
+                         AND PRE.CF$_OBJECT_ID         = D.OBJECT_ID
+                         AND PRE.CF$_CODE_PART         = 'C'
+                         AND PRE.CF$_VALID_UNTIL_DATE >= A.DATE_CREATED
+                       ORDER BY PRE.CF$_VALID_UNTIL_DATE DESC
+                       FETCH FIRST ROW ONLY) H
+         OUTER APPLY (SELECT PRE.CF$_CODE_PART_VALUE AS CODE_D
+                        FROM IFSLAF.LAF_OBJECT_PRE_ACCOUNTING_CLV PRE
+                       WHERE PRE.CF$_COMPANY           = D.COMPANY
+                         AND PRE.CF$_OBJECT_ID         = D.OBJECT_ID
+                         AND PRE.CF$_CODE_PART         = 'D'
+                         AND PRE.CF$_VALID_UNTIL_DATE >= A.DATE_CREATED
+                       ORDER BY PRE.CF$_VALID_UNTIL_DATE DESC
+                       FETCH FIRST ROW ONLY) I
+         OUTER APPLY (SELECT PRE.CF$_CODE_PART_VALUE AS CODE_E
+                        FROM IFSLAF.LAF_OBJECT_PRE_ACCOUNTING_CLV PRE
+                       WHERE PRE.CF$_COMPANY           = D.COMPANY
+                         AND PRE.CF$_OBJECT_ID         = D.OBJECT_ID
+                         AND PRE.CF$_CODE_PART         = 'E'
+                         AND PRE.CF$_VALID_UNTIL_DATE >= A.DATE_CREATED
+                       ORDER BY PRE.CF$_VALID_UNTIL_DATE DESC
+                       FETCH FIRST ROW ONLY) J
+         OUTER APPLY (SELECT PRE.CF$_CODE_PART_VALUE AS CODE_F
+                        FROM IFSLAF.LAF_OBJECT_PRE_ACCOUNTING_CLV PRE
+                       WHERE PRE.CF$_COMPANY           = D.COMPANY
+                         AND PRE.CF$_OBJECT_ID         = D.OBJECT_ID
+                         AND PRE.CF$_CODE_PART         = 'F'
+                         AND PRE.CF$_VALID_UNTIL_DATE >= A.DATE_CREATED
+                       ORDER BY PRE.CF$_VALID_UNTIL_DATE DESC
+                       FETCH FIRST ROW ONLY) K
+         OUTER APPLY (SELECT PRE.CF$_CODE_PART_VALUE AS CODE_G
+                        FROM IFSLAF.LAF_OBJECT_PRE_ACCOUNTING_CLV PRE
+                       WHERE PRE.CF$_COMPANY           = D.COMPANY
+                         AND PRE.CF$_OBJECT_ID         = D.OBJECT_ID
+                         AND PRE.CF$_CODE_PART         = 'G'
+                         AND PRE.CF$_VALID_UNTIL_DATE >= A.DATE_CREATED
+                       ORDER BY PRE.CF$_VALID_UNTIL_DATE DESC
+                       FETCH FIRST ROW ONLY) L
+         OUTER APPLY (SELECT PRE.CF$_CODE_PART_VALUE AS CODE_H
+                        FROM IFSLAF.LAF_OBJECT_PRE_ACCOUNTING_CLV PRE
+                       WHERE PRE.CF$_COMPANY           = D.COMPANY
+                         AND PRE.CF$_OBJECT_ID         = D.OBJECT_ID
+                         AND PRE.CF$_CODE_PART         = 'H'
+                         AND PRE.CF$_VALID_UNTIL_DATE >= A.DATE_CREATED
+                       ORDER BY PRE.CF$_VALID_UNTIL_DATE DESC
+                       FETCH FIRST ROW ONLY) M
+         OUTER APPLY (SELECT PRE.CF$_CODE_PART_VALUE AS CODE_I
+                        FROM IFSLAF.LAF_OBJECT_PRE_ACCOUNTING_CLV PRE
+                       WHERE PRE.CF$_COMPANY           = D.COMPANY
+                         AND PRE.CF$_OBJECT_ID         = D.OBJECT_ID
+                         AND PRE.CF$_CODE_PART         = 'I'
+                         AND PRE.CF$_VALID_UNTIL_DATE >= A.DATE_CREATED
+                       ORDER BY PRE.CF$_VALID_UNTIL_DATE DESC
+                       FETCH FIRST ROW ONLY) N
+         WHERE A.CONTRACT IN ('41', '44', '48', '54')
+           AND A.DIRECTION = '-'
+           AND A.TRANSACTION_CODE = 'WOISS'
+
+         UNION ALL
+
+        SELECT A.TRANSACTION_ID,
+               A.DATE_CREATED,
+               A.DATE_APPLIED,
+               A.TRANSACTION_CODE,
+               A.PART_NO,
+               A.LOCATION_NO,
+               A.CONTRACT,
+               IFSLAF.COMPANY_SITE_API.GET_COMPANY(A.CONTRACT),
+               A.PRE_ACCOUNTING_ID,
+               B.ACCOUNT_NO,
+               B.CODENO_B,
+               B.CODENO_C,
+               B.CODENO_D,
+               B.CODENO_E,
+               B.CODENO_F,
+               B.CODENO_G,
+               B.CODENO_H,
+               B.CODENO_I,
+               A.USERID,
+               A.SERIAL_NO,
+               A.QUANTITY * CASE WHEN A.DIRECTION = '+' THEN -1 ELSE 1 END,
+               A.COST * CASE WHEN A.DIRECTION = '+' THEN -1 ELSE 1 END,
+               A.COST * A.QUANTITY * CASE WHEN A.DIRECTION = '+' THEN -1 ELSE 1 END,
+               TO_DATE(A.OBJVERSION,'YYYY/MM/DD HH24:MI:SS'),
+               NULL,
+               NULL,
+               NULL,
+               A.C_VOUCHER_NO
+          FROM IFSLAF.INVENTORY_TRANSACTION_HIST2 A
+         INNER JOIN IFSLAF.MPCCOM_ACCOUNTING B ON (A.ACCOUNTING_ID = B.ACCOUNTING_ID AND A.TRANSACTION_CODE = B.EVENT_CODE)
+         WHERE B.STR_CODE IN ('M184', 'M7')
+           AND A.TRANSACTION_CODE IN ('COUNT-IN','COUNT-OUT')
+     ) SUBTAB
+ WHERE NOT EXISTS(SELECT 1
+                    FROM IFSLAF.LAF_BAIXAS_ESTOQUE_CLV A
+                   WHERE SUBTAB.ID_TRANSACAO = A.CF$_ID_TRANSACAO)
+
+ UNION ALL
+
+SELECT B.CF$_ID_TRANSACAO,
+       B.CF$_DATA_CRIACAO,
+       B.CF$_DATA_UTILIZACAO,
+       B.CF$_COD_TRANSACAO,
+       IFSLAF.MPCCOM_SYSTEM_EVENT_API.GET_DESCRIPTION(B.CF$_COD_TRANSACAO),
+       B.CF$_ID_MATERIAL,
+       IFSLAF.INVENTORY_PART_API.GET_DESCRIPTION(B.CF$_ID_SITE, B.CF$_ID_MATERIAL),
+       NULL,
+       B.CF$_ID_SITE,
+       B.CF$_ID_EMPRESA,
+       B.CF$_ID_MATERIAL || '-' || B.CF$_ID_SITE,
+       NULL,
+       NULL,
+       B.CF$_CODE_B,
+       B.CF$_CODE_C,
+       B.CF$_CODE_D,
+       B.CF$_CODE_E,
+       B.CF$_CODE_F,
+       B.CF$_CODE_G,
+       B.CF$_CODE_H,
+       B.CF$_CODE_I,
+       B.CF$_USER,
+       B.CF$_CODE_E,
+       B.CF$_QTDE,
+       B.CF$_VALOR_UNITARIO * (-1),
+       B.CF$_VALOR_TOTAL * (-1),
+       B.CF$_ULT_UTILIZACAO,
+       NULL,
+       NULL,
+       NULL,
+       NULL
+  FROM IFSLAF.LAF_BAIXAS_ESTOQUE_CLV B
