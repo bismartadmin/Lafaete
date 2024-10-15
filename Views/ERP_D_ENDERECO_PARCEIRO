@@ -1,0 +1,2 @@
+select customer_id as id_cliente, party_type as tipo_parceiro, address1 as desc_endereco, zip_code as id_cep, city as desc_cidade, state as desc_estado
+from ifslaf.CUSTOMER_INFO_ADDRESS
