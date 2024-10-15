@@ -1,0 +1,29 @@
+WITH SUBTAB AS
+(SELECT Z.mch_code, Z.parameter_code, Z.reg_date DATA_ANTERIOR, COALESCE(z.MEASURED_VALUE,z.recorded_value) VALOR_ANTERIOR FROM IFSLAF.EQUIPMENT_OBJECT_MEAS Z WHERE Z.measurement_type_db = 'RecordedReading')
+SELECT A.MCH_CODE                                                                                                                        AS SERIAL,
+NVL(ifslaf.Equipment_Object_API.Get_Mch_Name(A.CONTRACT, A.MCH_CODE), IFSLAF.Resource_Util_API.Get_Resource_Description(A.RESOURCE_SEQ)) AS DESC_MATERIAL_VENDAS,
+       A.CONTRACT                                                                                                                               AS ID_SITE,
+       b.parameter_code                                                                                                                         AS COD_PARAMETRO,
+       C.REG_DATE                                                                                                                               AS DATA_REGISTRO,
+       C.recorded_value                                                                                                                         AS VALOR_REGISTRADO,
+       COALESCE(C.MEASURED_VALUE,C.recorded_value)                                                                                              AS VALOR_TOTAL,
+       C.REMARK                                                                                                                                 AS AVISO,
+       C.C_MB_ID                                                                                                                                AS ID_BM,
+       max(SUBTAB.VALOR_ANTERIOR)  VALOR_ANTERIOR
+
+FROM IFSLAF.OBJECT_PARAMETERS A
+INNER JOIN IFSLAF.EQUIP_OBJECT_MEAS_GROUP B ON A.mch_code = B.mch_code
+INNER JOIN IFSLAF.EQUIPMENT_OBJECT_MEAS C   ON A.mch_code = C.mch_code AND B.parameter_code = C.parameter_code
+LEFT JOIN SUBTAB ON  (SUBTAB.MCH_CODE = A.mch_code AND SUBTAB.PARAMETER_CODE = B.parameter_code AND SUBTAB.DATA_ANTERIOR < C.reg_date)
+WHERE  C.measurement_type_db = 'RecordedReading'
+--AND A.mch_code = 'GVQ9829' AND b.parameter_code = 'HR'
+GROUP BY  A.MCH_CODE,
+          A.RESOURCE_SEQ,
+          A.CONTRACT,
+          b.parameter_code,
+          C.REG_DATE,
+          C.recorded_value,
+          C.MEASURED_VALUE,
+          C.REMARK,
+          C.C_MB_ID
+ORDER BY  C.reg_date DESC
