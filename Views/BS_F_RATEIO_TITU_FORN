@@ -1,0 +1,29 @@
+SELECT 
+        B.COMPANY,
+        B.INVOICE_ID,
+        A.INVOICE_NO,
+        A.IDENTITY,
+        A.PARTY_TYPE,
+        A.CODE_A,
+        A.CODE_B,
+        A.CODE_C,
+        A.CODE_D,
+        A.CODE_E,
+        A.CODE_F,
+        A.CODE_G,
+        A.CODE_H,
+        A.CODE_I,
+        A.CODE_J,
+        A.CURR_AMOUNT,
+        A.CURR_AMOUNT / IFSLAF.MAN_SUPP_INVOICE_API.Get_Inv_Actual_Net_Curr_Amt(A.company, A.invoice_id) AS percent 
+    FROM 
+        IFSLAF.MAN_SUPP_INVOICE_POSTINGS A
+    JOIN 
+        IFSLAF.MAN_SUPP_INVOICE B 
+    ON 
+        B.invoice_id = A.invoice_id 
+        AND B.company = A.company
+    WHERE 
+        A.POSTING_TYPE NOT IN ('IP5','IP1','IP3','IP9', 'IP10', 'IP11', 'IP13', 'IP14', 'IP16', 'IP18', 'IP22', 'IP24', 'IP26', 'IP27', 'IP28', 'IP31', 'SP3')
+        and b.invoice_id not in ('129077','123757','857179','452769')
+        AND A.line_ref IS NOT NULL
