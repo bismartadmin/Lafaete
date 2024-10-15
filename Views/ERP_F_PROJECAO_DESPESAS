@@ -1,0 +1,61 @@
+SELECT A.ID_OC ID_OC,
+       a.STATUS_OC STATUS_OC,
+       a.ID_COMPRADOR ID_COMPRADOR,
+       a.DESC_COMPRADOR DESC_COMPRADOR,
+       ifslaf.company_site_api.Get_Company(a.ID_SITE) ID_EMPRESA,
+       a.ID_COORDENADOR,
+       a.DESC_COORDENADOR,
+       a.ID_FORNECEDOR,
+       a.DESC_FORNECEDOR,
+       a.DESC_GRUPO_FORNECEDOR,
+       a.TIPO_PARCEIRO,
+       b.STATUS_LINHA_OC STATUS_LINHA,
+       b.ID_REQUISITANTE,
+       B.DESC_REQUISITANTE,
+       b.ID_MATERIAL,
+       b.DESC_MATERIAL,
+       b.VALOR_UNITARIO,
+       B.QTDE,  
+       CASE WHEN b.ID_MATERIAL = 'FRETE' THEN B.QTDE ELSE IFSLAF.Purchase_Order_Line_API.Get_Due_At_Dock(B.ID_OC,B.ID_LINHA_OC,B.ID_LIBERACAO_OC) END QTDE_PENDENTE, 
+       b.ID_CODE_H_APR_CUSTO,
+       B.ID_CODE_B_CR,
+       B.ID_CODE_D_NATUREZA,
+       B.ID_CODE_F_PROJETO,
+       B.ID_CODE_I_NEGOCIO,
+       NVL(a.CONTRATO, 'NAO') CONTRATO,
+       a.ID_COND_PAGTO,
+       a.DESC_COND_PAGTO,
+       coalesce((SELECT J.short_name FROM ifslaf.CASH_ACCOUNT J WHERE J.short_name = IFSLAF.PAYMENT_WAY_CFP.Get_Cf$_Cash_Account_Pay(IFSLAF.PAYMENT_WAY_API.Get_Objkey(ifslaf.company_site_api.Get_Company(a.ID_SITE),C.way_id))) ,(select n.short_name
+          from ifslaf.CASH_ACCOUNT_CUSTOMER n
+         where n.company = ifslaf.company_site_api.Get_Company(a.ID_SITE)
+           and n.default_flag = 'TRUE')) ID_CONTA_MOV,
+       a.DESC_OPERACAO_FISCAL,
+       B.DATA_CRIACAO_LINHA_OC,
+       B.DATA_LIBERACAO DATA_LIBERACAO,
+       B.DATA_PRIMEIRA_LIBERACAO DATA_PRIMEIRA_LIBERACAO,
+       B.DATA_DESEJADA DATA_DESEJADA,
+       CASE when B.DATA_DESEJADA < sysdate then sysdate else b.DATA_DESEJADA end DATA_PROJECAO,
+       y.installment_number ID_PARCELA,
+       (CASE when B.DATA_DESEJADA < sysdate then sysdate else b.DATA_DESEJADA end) + y.DAYS_TO_DUE_DATE DATA_VENCIMENTO,
+       b.VALOR_UNITARIO * CASE WHEN b.ID_MATERIAL = 'FRETE' THEN B.QTDE ELSE IFSLAF.Purchase_Order_Line_API.Get_Due_At_Dock(B.ID_OC,B.ID_LINHA_OC,B.ID_LIBERACAO_OC) END  * (y.NET_AMOUNT_PERCENTAGE / 100) VALOR_PARCELA
+                 
+  FROM ifsinfo.erp_df_ordens_de_compra A
+  JOIN IFSinfo.Erp_f_Linha_Ordem_Compra B
+    ON A.ID_OC = B.ID_OC
+  LEFT JOIN ifslaf.PURCHASE_ORDER_INVOICE F
+    ON F.order_no = B.ID_OC
+   AND F.line_no = B.ID_LINHA_OC
+   AND F.release_no = B.ID_LIBERACAO_OC
+  LEFT JOIN IFSLAF.PAYMENT_TERM_DETAILS Y
+    ON ifslaf.company_site_api.Get_Company(a.ID_SITE) = Y.company
+   AND Y.pay_term_id = a.ID_COND_PAGTO
+  LEFT JOIN IFSLAF.PAYMENT_WAY_PER_IDENTITY C ON C.company = ifslaf.company_site_api.Get_Company(a.ID_SITE) AND C.identity = A.ID_FORNECEDOR AND C.default_payment_way = 'TRUE' and c.party_type_db = 'SUPPLIER'
+
+ WHERE b.STATUS_LINHA_OC not in ('Cancelado', 'Fechado')
+   AND IFSLAF.CODE_D_CFP.Get_Cf$_Package_Grouping(IFSLAF.CODE_D_API.Get_Objkey(IFSLAF.COMPANY_SITE_API.Get_Company(B.ID_SITE), B.ID_CODE_D_NATUREZA)) <> 'INVESTIMENTOS'
+   and ifslaf.PURCHASE_ORDER_LINE_API.Get_Automatic_Invoice_Db(b.ID_OC,
+                                                                   b.ID_LINHA_OC,
+                                                                   b.ID_LIBERACAO_OC)  <> 'MANUAL'
+                                                                   
+                                                                   
+  -- AND a.ID_OC = '149589'
