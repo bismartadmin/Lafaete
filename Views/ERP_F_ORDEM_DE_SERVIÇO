@@ -1,0 +1,33 @@
+SELECT  A.wo_no                                                                    N_OS,
+        COALESCE(ifslaf.ACTIVE_SEPARATE_API.Get_C_Agreement_Id(wo_no_ => a.wo_no),
+        ifslaf.HISTORICAL_SEPARATE_API.Get_C_Agreement_Id(wo_no_ => a.wo_no))      N_CONTRATO,
+        (SELECT B.salesman_code FROM IFSLAF.C_RECURRENT_AGREEMENT B 
+            WHERE B.agreement_id = COALESCE(ifslaf.ACTIVE_SEPARATE_API.Get_C_Agreement_Id(wo_no_ => a.wo_no),
+            ifslaf.HISTORICAL_SEPARATE_API.Get_C_Agreement_Id(wo_no_ => a.wo_no)) )    ID_REPRESENTANTE,
+        a.ERR_DESCR                                                                DESCRICAO_OS,
+        A.STATE                                                                    STATUS_OS,
+        a.contract                                                                 ID_SITE,
+        CASE WHEN A.state = 'Concluído' THEN 'Fechada' ELSE 'Aberta' END           STATUS_GERENCIAL, 
+        a.customer_no                                                              ID_CLIENTE, 
+        a.WORK_TYPE_ID                                                             ID_TIPO_OS,
+        ifslaf.WORK_TYPE_API.Get_Description(a.WORK_TYPE_ID)                       DESC_TIPO_OS,
+        IFSLAF.OPERATIONAL_STATUS_API.Get_Description(A.OP_STATUS_ID)              STATUS_OPERACAO,
+        a.REG_DATE                                                                 DATA_CRIACAO,
+        ifslaf.person_info_api.Get_Name(a.reported_by)                             DESC_USUARIO_CRIACAO,
+        (SELECT MIN(ACTUAL_START) FROM ifslaf.JT_TASK_UIV B WHERE B.WO_NO = A.wo_no GROUP BY B.WO_NO  ) DATA_INICIO_REAL,
+        (SELECT MAX(ACTUAL_FINISH) FROM ifslaf.JT_TASK_UIV B WHERE B.WO_NO = A.wo_no GROUP BY B.WO_NO  ) DATA_FIM_REAL,
+        ifslaf.Jt_Task_Cost_Line_Util_API.Get_Sum_Actual_Cost(a.WO_NO, 'P')        CUSTO_PESSOAL,
+        ifslaf.Jt_Task_Cost_Line_Util_API.Get_Sum_Actual_Cost(a.WO_NO, 'F')        CUSTO_PRECO_FIXO,
+        ifslaf.Jt_Task_Cost_Line_Util_API.Get_Sum_Actual_Cost(a.WO_NO, 'X')        CUSTO_DESPESAS,
+        ifslaf.Jt_Task_Cost_Line_Util_API.Get_Sum_Actual_Cost(a.WO_NO, 'M')        CUSTO_MATERIAL,
+        ifslaf.Jt_Task_Cost_Line_Util_API.Get_Sum_Actual_Cost(a.WO_NO, 'T')        CUSTO_EQUIPAMENTO,
+        ifslaf.Jt_Task_Cost_Line_Util_API.Get_Sum_Actual_Cost(a.WO_NO, 'E')        CUSTO_EXTERNO,
+        a.MCH_CODE                                                                 SERIAL,
+        ifslaf.EQUIPMENT_SERIAL_API.Get_Part_No(contract_ => a.mch_code_contract , mch_code_ => a.mch_code) as ID_MATERIAL,
+        IFSLAF.PART_CATALOG_API.Get_Description(part_no_ => ifslaf.EQUIPMENT_SERIAL_API.Get_Part_No(contract_ => a.mch_code_contract , mch_code_ => a.mch_code) ,language_code_ => 'bp') DESC_MATERIAL,
+        ifslaf.EQUIPMENT_SERIAL_API.Get_Part_No(contract_ => a.mch_code_contract , mch_code_ => a.mch_code)||'-'||A.contract  CHAVE_MATERIAL_SITE,
+        COALESCE(ifslaf.ACTIVE_SEPARATE_API.Get_ORG_CODE(wo_no_ => a.wo_no),
+        ifslaf.HISTORICAL_SEPARATE_API.Get_ORG_CODE(wo_no_ => a.wo_no))      ORG_MANUT
+
+FROM IFSLAF.WORK_ORDER A
+WHERE a.state <> 'Cancelado'
