@@ -1,0 +1,24 @@
+SELECT 
+       A.manual_cash_flow_id          ID_FLUXO_MANUAL,
+       a.CF$_CASH_ACCOUNT             ID_CONTA_MOV,
+       A.company                      ID_EMPRESA,
+       A.counterpart_id               ID_CLIENTE,
+       A.counterpart_name             DESC_CLIENTE,
+       A.cfa_internal_external        TIPO_PARCEIRO,
+       A.cfa_in_out                   TIPO_MOVIMENTO,
+       A.registration_date            DATA_REGISTRO,
+       A.cash_flow_date               DATA_VENCIMENTO,
+       A.cash_flow_status                               STATUS_LANCTO_MANUAL,
+       A.account                      ID_CODE_A_CONTA,
+       A.code_b                       ID_CODE_B_CR,
+       A.code_C                       ID_CODE_C_SITE,
+       A.code_D                       ID_CODE_D_NATUREZA,
+       A.code_E                       ID_CODE_E_ATIVO,
+       A.code_F                       ID_CODE_F_PROJETO,
+       A.code_G                       ID_CODE_G_LINHA,
+       A.code_H                       ID_CODE_H_APR_CUSTO,
+       A.code_I                       ID_CODE_I_NEGOCIO,
+       A.cash_flow_text               OBS,
+       A.cash_flow_amount             VALOR
+       
+FROM ifslaf.SING_CFA_MANUAL_CASH_FLOW_CFV a
