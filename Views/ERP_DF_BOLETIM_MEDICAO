@@ -1,0 +1,29 @@
+SELECT a.mb_id        ID_BM,
+       a.AGREEMENT_ID N_CONTRATO,
+       a.opportunity_no ID_OPORTUNIDADE,
+       a.customer_id    ID_CLIENTE,
+       ifslaf.CUSTOMER_INFO_API.Get_Name(a.CUSTOMER_ID) DESC_CLIENTE,
+       a.agreement_modality Modalidade,
+       a.CUSTOMER_PO_NO OC_CLIENTE,
+       a.start_measurement_date Data_Inicio_Medicao,
+       a.end_measurement_date Data_Final_Medicao,
+       a.contract ID_Site,
+       COALESCE( ifslaf.c_Recurrent_Agreement_Cfp.Get_Cf$_Code_H(ifslaf.c_recurrent_agreement_api.Get_Objkey(opportunity_no_ => a.opportunity_no , agreement_id_ => a.agreement_id)) , a.contract ) ID_CODE_H_APR_CUSTO,
+       ifslaf.PERSON_INFO_API.Get_Name(a.AGREEMENT_MANAGER) DESC_Gestor_Contrato,
+       
+       c.addition_value valor_Adicional,
+       ifslaf.C_BULLETIN_ADDITION_REASON_API.Get_Description(c.addition_reason_id) Motivo_Acrescimo,
+       c.discount_value valor_Desconto,
+       ifslaf.C_BULLETIN_ADDITION_REASON_API.Get_Description(c.discount_reason_id) Motivo_Desconto,
+       (select d.date_entered from ifslaf.C_REC_AGREEMENT_HISTORY D where d.MESSAGE_TEXT LIKE '%Boletim%' and TO_NUMBER(REPLACE(substr(d.MESSAGE_TEXT,20,200),' Criado','')) = a.mb_id) Data_Criacao_BM,
+       c.MEASUREMENT_DELIVERY_DATE Data_Envio_Medicao,
+       c.released_date Data_Liberado_Faturamento,
+       ifslaf.C_MEASUR_BULLETIN_STATUS_API.Get_Description(a.MANAGEMENT_STATUS) Status_Gerencial_BM,
+       a.STATE Status_BM,
+       
+       
+       (select sum(b.actual_value) from ifslaf.C_BULLETIN_SUMMARY b where b.reference_column = 'Valor Total do BM:' and b.mb_id = a.mb_id) Valor_Total_BM
+        
+
+FROM ifslaf.C_MEASUREMENT_BULLETIN A 
+     left join ifslaf.C_BULLETIN_ADDITIONAL_INFO C on a.mb_id = c.mb_id
