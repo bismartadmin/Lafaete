@@ -1,0 +1,24 @@
+SELECT A.INQUIRY_NO                                                   N_COTACAO_COMPRA,
+       A.LINE_NO                                                      N_LINHA_COTACAO,
+       A.REVISION_NO                                                  N_REVISAO,
+       A.VENDOR_NO                                                    ID_FORNECEDOR,
+       ifslaf.supplier_info_api.Get_Name(supplier_id_ => A.VENDOR_NO) DESC_FORNECEDOR,
+       A.PART_NO                                                      ID_MATERIAL,
+       A.DESCRIPTION                                                  DESC_MATERIAL,  
+       A.BUYER_CODE                                                   ID_COMPRADOR,
+       ifslaf.PURCHASE_BUYER_API.Get_Name(A.BUYER_CODE)               DESC_COMPRADOR,  
+       A.DATE_CREATED                                                 DATA_CRIACAO,
+       IFSLAF.Inquiry_Line_Revision_API.Get_Quantity(A.INQUIRY_NO, A.LINE_NO, A.REVISION_NO) QTDE,
+       A.PRICE                                                        VALOR_UNITARIO_BRUTO,
+       A.price * (1-(A.discount/100))                                       VALOR_UNITARIO_LIQ,
+       (A.price * (1-(A.discount/100)) * IFSLAF.Inquiry_Line_Revision_API.Get_Quantity(A.INQUIRY_NO, A.LINE_NO, A.REVISION_NO)) VALOR_TOTAL,
+       (A.DISCOUNT/100)                                               DESCONTO,
+       A.ORDER_NO                                                     ID_OC,
+       A.PROMISED_DELIVERY_DATE                                       DATA_DESEJADA,
+       A.COMPANY                                                      ID_EMPRESA,
+       A.CONTRACT                                                     ID_SITE,
+       A.STATE                                                        STATUS,
+       TO_DATE(a.objversion,'YYYY/MM/DD HH24:MI:SS')                  ULT_ATUALIZACAO
+       
+       
+  FROM IFSLAF.QUOTATION_LINE_COM A
