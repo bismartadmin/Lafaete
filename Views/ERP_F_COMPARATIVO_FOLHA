@@ -1,0 +1,30 @@
+select DISTINCT A.TEXT                   AS TEXTO, --Rubrica
+                A.LOAD_ID                AS ID_CARGA,
+                A.STATE                  AS STATUS_LINHA,
+                A.TRANSACTION_DATE       AS DATA_TRANSACAO,
+                A.ACCOUNTING_PERIOD      AS PERIODO_CONTABIL,
+                A.VOUCHER_NO             AS N_LANCTO,
+                a.VOUCHER_TYPE           AS TIPO_LANCTO,
+                A.CODE_C                 AS SITE,
+                A.CODE_C_DESC            AS DESC_SITE,
+                A.CODE_B                 AS CR,
+                A.CODE_B_DESC            AS DESC_CR,
+                A.ACCOUNT                AS CONTA,
+                A.CODE_A_DESC            AS DESC_CONTA,
+                A.CODE_H                 AS APR_CUSTO,
+                A.CODE_H_DESC            AS DESC_APR_CUSTO,
+                A.CURRENCY_DEBET_AMOUNT  AS VALOR_DEBITO_MOEDA,
+                A.CURRENCY_CREDIT_AMOUNT AS VALOR_CREDITO_MOEDA,
+                A.CURRENCY_AMOUNT        AS VALOR_MOEDA,
+                A.DEBET_AMOUNT           AS VALOR_DEBITO,
+                A.CREDIT_AMOUNT          AS VALOR_CREDITO,
+                A.AMOUNT                 AS VALOR, --Valor total 
+                A.CODE_D                 AS NATUREZA,
+                A.CODE_D_DESC            AS DESC_NATUREZA,
+                A.CODE_F                 AS PROJETO,
+                A.CODE_F_DESC            AS DESC_PROJETO,
+                A.CODE_I                 AS NEGOCIO,
+                A.CODE_I_DESC            As DESC_NEGOCIO
+
+  from ifslaf.EXT_TRANSACTIONS_NEW A
+ WHERE VOUCHER_TYPE = 'FP'
