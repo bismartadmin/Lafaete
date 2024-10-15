@@ -1,0 +1,21 @@
+SELECT a.PART_NO                                                            ID_MATERIAL,
+       IFSLAF.Inventory_Part_API.Get_Description(A.Contract, A.Part_No)     DESC_MATERIAL,
+       A.CONTRACT                                                           ID_SITE,
+       A.PART_NO||'-'||A.CONTRACT                                           CHAVE_MATERIAL_SITE,
+       IFSLAF.Part_Revision_API.Get_Latest_Revision(A.Contract, A.PART_NO)  N_REV,
+       a.ALTERNATIVE_NO                                                     ID_ALTERNATIVA,
+       IFSLAF.PROD_STRUCT_ALTERNATE_API.Get_Alternative_Description(a.CONTRACT,a.PART_NO,a.ENG_CHG_LEVEL,a.BOM_TYPE,A.ALTERNATIVE_no)   DESC_ALTERNATIVA,                           
+       A.COMPONENT_PART                                                     ID_MATERIAL_COMPONENTE,
+       IFSLAF.INVENTORY_PART_API.Get_Description(A.Contract,A.COMPONENT_PART) DESC_MATERIAL_COMPONENTE,
+       A.QTY_PER_ASSEMBLY                                                    QTDE_POR_MONTAGEM,
+       IFSLAF.ENG_PART_CLASS_API.Get_Description(IFSLAF.ENG_PART_MASTER_API.Get_Part_Class(A.PART_NO)) CLASS_MATERIAL,
+       A.OPERATION_NO             COD_OPERACAO,
+       RO.SETUP_CREW_SIZE AS TAMANHO_DA_EQUIPE,
+       IFSLAF.Labor_Class_API.Get_Labor_Class_Description(RO.CONTRACT,RO.LABOR_CLASS_NO) DESC_MAO_DE_OBRA
+FROM IFSLAF.PROD_STRUCTURE A 
+LEFT JOIN IFSLAF.ROUTING_OPERATION RO
+    ON A.contract = RO.contract
+    AND A.PART_NO = RO.PART_NO
+    AND A.OPERATION_NO = RO.OPERATION_NO
+    AND A.BOM_TYPE = RO.BOM_TYPE
+WHERE a.qty_per_assembly >= 0
