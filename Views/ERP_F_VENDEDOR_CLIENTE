@@ -1,0 +1,11 @@
+select a.customer_id ID_CLIENTE,
+       A.representative_id ID_REPRESENTANTE 
+
+from ifslaf.REPRESENTATIVE_CUSTOMER a
+
+
+union all
+
+select b.lead_id,
+       b.main_representative_id
+from ifslaf.BUSINESS_LEAD b
