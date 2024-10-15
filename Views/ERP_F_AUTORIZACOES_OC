@@ -1,0 +1,41 @@
+SELECT a.template_id                                                                              ID_MODELO_AUTORIZACAO,
+       A.description                                                                              DESC_MODELO_AUTORIZACAO,
+       A.company                                                                                  ID_EMPRESA,
+       B.route                                                                                    N_ETAPA,
+       B.approval_level                                                                           TIPO_AUTORIZACAO,
+       coalesce(B.authorize_id,d.authorize_id)                                                    ID_AUTORIZADOR,      
+       IFSLAF.PURCHASE_AUTHORIZER_API.Get_User(B.company,coalesce(B.authorize_id,d.authorize_id)) DESC_AUTORIZADOR,
+       B.authorize_group_id                                                                       ID_GRUPO_AUTORIZADOR,
+       IFSLAF.PURCH_AUTHORIZE_GROUP_API.Get_Description(B.company,B.authorize_group_id)           DESC_GRUPO_AUTORIZADOR,
+       C.APPROVAL_RULE                                                                            ID_REGRA_AUTORIZACAO,
+       C.description                                                                              DESC_REGRA_AUTORIZACAO,
+       H.contract                                                                                 ID_SITE,
+       C.TEMP_PRIORITY                                                                            PRIORIDADE,
+       C.state                                                                                    STATUS,
+       C.MIN_AMOUNT                                                                               VALOR_MINIMO,
+       C.MAX_AMOUNT                                                                               VALOR_MAXIMO,
+       C.AUTH_ROUTING_OPTION                                                                      OPCOES_ROTEIRO_AUTORIZACAO,
+       E.coordinator_code                                                                         ID_COORDENADOR,
+       IFSLAF.ORDER_COORDINATOR_API.Get_Name(E.COORDINATOR_CODE)                                  DESC_COORDENADOR,
+       F.buyer_code                                                                               ID_COMPRADOR,
+       IFSLAF.Purchase_Buyer_API.Get_Name(F.BUYER_CODE)                                           DESC_COMPRADOR,
+       G.VENDOR_NO                                                                                ID_FORNECEDOR,
+       IFSLAF.SUPPLIER_API.Get_Vendor_Name(G.VENDOR_NO)                                           DESC_FORNECEDOR,                                          
+       IFSLAF.Supplier_Group_API.Get_Description(i.SUPP_GRP)                                      GRUPO_ESTATISTICO_FORN,
+       M.project_id                                                                               ID_PROJETO,
+       IFSLAF.PROJECT_CATEGORY1_GLOBAL_API.Get_Description(K.CATEGORY1_ID)                        DESC_CAT_1_PROJETO,
+       IFSLAF.PROJECT_CATEGORY2_GLOBAL_API.Get_Description(L.CATEGORY2_ID)                        DESC_CAT_2_PROJETO,
+       TO_DATE(B.objversion,'YYYY/MM/DD HH24:MI:SS')                                              ULT_ATUALIZACAO_MODELO,
+       TO_DATE(C.objversion,'YYYY/MM/DD HH24:MI:SS')                                              ULT_ATUALIZACAO_REGRA
+          
+FROM ifslaf.PUR_APPROVAL_TEMPL a JOIN IFSLAF.PUR_APPROVAL_TEMPL_LINE B ON A.company = B.company AND A.template_id = B.template_id
+JOIN ifslaf.PUR_APPROVAL_RULE C ON A.company = C.company AND A.template_id = C.template_id 
+LEFT JOIN ifslaf.PURCH_AUTHORIZE_GROUP_LINE d ON a.company = d.company AND b.authorize_group_id = d.authorize_group_id
+LEFT JOIN IFSLAF.PUR_APPROVAL_RULE_SITE H ON H.approval_rule = C.approval_rule
+LEFT JOIN ifslaf.PUR_ORD_RULE_COORDINATOR e ON e.approval_rule = c.approval_rule
+LEFT JOIN IFSLAF.PUR_ORD_RULE_BUYER F ON F.approval_rule = C.approval_rule
+LEFT JOIN IFSLAF.PUR_ORD_RULE_SUPPLIER G ON G.approval_rule = C.approval_rule
+LEFT JOIN IFSLAF.PUR_ORD_RULE_SUPP_GROUP I ON I.approval_rule = C.approval_rule
+LEFT JOIN IFSLAF.PUR_ORD_RULE_PROJECT M   ON M.approval_rule = C.approval_rule AND M.company = C.company
+LEFT JOIN IFSLAF.PUR_ORD_RULE_PROJ_CAT1 K ON K.approval_rule = C.approval_rule AND K.company = C.company
+LEFT JOIN IFSLAF.PUR_ORD_RULE_PROJ_CAT2 L ON L.approval_rule = C.approval_rule AND L.company = C.company
