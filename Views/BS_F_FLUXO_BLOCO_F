@@ -1,0 +1,52 @@
+SELECT         A.COMPANY,
+               A.COMPANY PARENT_COMPANY,
+               A.PAYMENT_ID,
+               A.SERIES_ID,
+               NULL AS TRANS_ID,
+               A.SHORT_NAME,
+               A.VOUCHER_NO,
+               A.VOUCHER_DATE,
+               A.PAY_DATE,
+               A.VOUCHER_TYPE,
+               A.PAYMENT_TYPE_CODE,
+               NULL LEDGER_ITEM_ID,
+               NULL INSTALLMENT_ID, 
+               NULL TIPO_TITULO, 
+               NULL LEDGER_DATE, 
+               NULL C_DUE_DATE_ORG, 
+               NULL DUE_DATE, 
+               NULL IDENTITY,
+               NULL NAME, 
+               NULL ESPECIE_PARCEIRO, 
+               NULL TIPO_PARCEIRO, 
+               NULL PAYER_IDENTITY,
+               COALESCE(D.CODE_A,c.CODE_A,F.CODE_A) code_a,
+               COALESCE(D.CODE_B,c.CODE_b,F.CODE_B) code_b,
+               COALESCE(D.CODE_C,c.CODE_C,F.CODE_C) code_c,
+               COALESCE(D.CODE_D,c.CODE_D,F.CODE_D) code_d,
+               COALESCE(D.CODE_E,c.CODE_E,F.CODE_E) code_e,
+               COALESCE(D.CODE_F,c.CODE_F,F.CODE_F) code_f,
+               COALESCE(D.CODE_G,c.CODE_G,F.CODE_G) code_g,
+               COALESCE(D.CODE_H,c.CODE_H,F.CODE_H) code_h,
+               COALESCE(D.CODE_I,c.CODE_I,F.CODE_I) code_i,
+               COALESCE(D.CODE_J,c.CODE_J,F.CODE_J) code_j,
+               ABS(A.DOM_AMOUNT) VALOR,
+               CASE WHEN A.DOM_AMOUNT < 0 THEN 'Saida' ELSE 'Entrada' END TIPO_MOVIMENTO,
+               A.OBJVERSION,
+               NULL AS POSTING_TYPE,
+               COALESCE((SELECT F.SHORT_NAME FROM IFSLAF.CASH_TRANSACTION_MP_QRY F WHERE A.MIXED_PAYMENT_ID = F.MIXED_PAYMENT_ID AND F.COMPANY = A.COMPANY AND F.SHORT_NAME <> A.SHORT_NAME FETCH FIRST ROW ONLY),D.SHORT_NAME) OBS,
+               'F' BLOCO_CODIGO,
+               NULL ADV_INV,
+               NULL ID_SERIE  
+         FROM IFSLAF.CASH_TRANSACTION_MP_QRY A
+        INNER JOIN IFSLAF.PAYMENT_TRANSACTION B ON (A.COMPANY = B.COMPANY AND A.SERIES_ID = B.SERIES_ID AND A.PAYMENT_ID = B.PAYMENT_ID AND A.TRANS_ID = B.TRANS_ID)
+        INNER JOIN IFSLAF.CASH_TRANSACTION Z ON (A.COMPANY = Z.COMPANY AND A.SERIES_ID = Z.SERIES_ID AND A.PAYMENT_ID = Z.PAYMENT_ID  AND Z.TRANS_ID = B.TRANS_ID)
+        LEFT JOIN IFSLAF.MIXED_PAYMENT_LUMP_SUM D ON A.COMPANY = D.COMPANY AND a.mixed_payment_id = d.mixed_payment_id AND Z.lump_sum_trans_id = d.lump_sum_trans_id -- AND a.trans_id = d.lump_sum_trans_id        
+        LEFT JOIN IFSLAF.MIXED_PAYMENT_LEDGER_TRANS C ON (A.COMPANY = C.COMPANY AND C.mixed_payment_id = d.mixed_payment_id AND C.lump_sum_trans_id = d.lump_sum_trans_id)
+        LEFT JOIN IFSLAF.MIXED_PAYMENT_MAN_POSTING F ON (A.COMPANY = F.COMPANY AND D.mixed_payment_id = F.mixed_payment_id AND D.lump_sum_trans_id = F.lump_sum_trans_id)
+          WHERE (A.PAYMENT_TYPE_CODE_DB IN ('GENPAY','COMPGENROLLBACK'))
+          AND (A.SERIES_ID  = 'GNPAY')
+          AND (B.OBJTYPE    = 'CashTransaction')
+          AND (B.ROLLEDBACK = 'FALSE')
+          AND (B.ROLLBACK_OF_SERIES_ID IS NULL)
+          AND A.SHORT_NAME IS NOT NULL
