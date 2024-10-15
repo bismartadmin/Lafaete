@@ -1,0 +1,49 @@
+SELECT a.budget_version                                                       VERSAO_ORCAMENTO,
+       CASE ifslaf.ACCOUNT_API.Get_Accnt_Type(a.company, a.account)
+         WHEN 'REVENUES' THEN
+          'RECEITA'
+         ELSE
+          'DESPESA'
+       END                                                                    TIPO_ORCAMENTO,
+       TO_DATE(CAST(A.budget_year AS VARCHAR2(4)) ||
+               CAST(LPAD(A.budget_period, 2, '0') AS VARCHAR2(2)) || '01',
+               'RRRRMMDD')                                                    DATA_REFERENCIA,
+       a.company                                                              ID_EMPRESA,
+       a.account                                                              ID_CODE_A_CONTA,
+       A.account_desc                                                         DESC_CODE_A_CONTA,
+       A.code_b                                                               ID_CODE_B_CR,
+       A.code_c                                                               ID_CODE_C_SITE,
+       A.code_d                                                               ID_CODE_D_NATUREZA,
+       A.code_E                                                              ID_CODE_E_ATIVO,
+       A.code_G                                                               ID_CODE_G_LINHA,
+       A.code_h                                                               ID_CODE_H_APR_CUSTO,
+       a.code_f                                                               ID_CODE_F_PROJETO,
+       A.code_i                                                               ID_CODE_I_NEGOCIO,
+       case a.code_f
+         when 'INTER0001' then
+          'Interno'
+         else
+          'Externo'
+       end                                                                    TIPO_PARCEIRO,
+       SUM(A.amount)                                                          VALOR_ORCADO
+  FROM IFSLAF.BUDGET_PERIOD_AMOUNT1 A
+ WHERE IFSLAF.BUDGET_VERSION_API.Get_Budget_Status(a.company,
+                                                   a.ledger_id,
+                                                   a.budget_year,
+                                                   a.budget_version) =       'Ativo'
+                                                   
+                                                   
+ GROUP BY a.budget_version,
+          A.budget_year,
+          A.budget_period,
+          a.account,
+          A.account_desc,
+          a.company,
+          A.code_h,
+          A.code_b,
+          A.code_d,
+          A.code_G,
+          a.code_f,
+          A.code_i,
+          A.code_C,
+          A.code_E
