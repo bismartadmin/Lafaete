@@ -1,0 +1,6 @@
+select COALESCE(A.customer_id,B.supplier_id)        ID_PARCEIRO,
+       COALESCE(A.name,B.name)                      DESC_PARCEIRO,
+       CASE WHEN A.customer_id IS NOT NULL AND B.supplier_id IS NOT NULL THEN 'Cliente e Fornecedor' 
+         when a.customer_id is not null then 'Cliente' else 'Fornecedor'end   CLIENTE_FORNECEDOR
+from IFSLAF.CUSTOMER_INFO A
+FULL JOIN IFSLAF.SUPPLIER_INFO_GENERAL B ON A.customer_id = B.supplier_id
