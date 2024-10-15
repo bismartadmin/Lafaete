@@ -1,0 +1,35 @@
+with EQUIP_OBJECT as (select a.reg_date, a. recorded_value, a.measured_value, a.mch_code, a.parameter_code
+                        from IFSLAF.EQUIP_OBJECT_MEAS_GROUP A
+                          where A.parameter_code IN ('HR','OD','COMB','LUB')
+                      )
+select a.mch_code                                                                       SERIAL,
+       f.ok_sign                                                                        USUARIO_ALTERACAO,
+       F.dt_ok                                                                          DATA_ULT_ALTERACAO,
+       max(decode(E.attribute,'CHASSI',E.value_text))                                   CHASSI, 
+       max(decode(E.attribute,'CILINDRADA',E.value_text))                               CILINDRADA,
+       max(decode(E.attribute,'PESO MAX',E.value_text))                                 PESO_MAX,
+       max(decode(E.attribute,'POTENCIA',E.value_text))                                 POTENCIA,
+       max(decode(E.attribute,'COR VEICULO',E.value_text))                              COR_VEICULO,
+       max(decode(E.attribute,'MARCA',E.value_text))                                    MARCA,
+       max(decode(E.attribute,'COMBUSTIVEL',E.value_text))                              COMBUSTIVEL,
+       max(decode(E.attribute,'ANO FABRICACAO',E.value_text))                           ANO_FABRICACAO,
+       max(decode(E.attribute,'CORRENTE REFRIG',E.value_text))                          CORRENTE_REFRIG,
+       max(decode(E.attribute,'GÁS REFRIGERANT',E.value_text))                          GAS_REFRIGERANT,
+       max(decode(E.attribute,'CAPACIDADE',E.value_text))                               CAPACIDADE,
+       max(decode(E.attribute,'MODELO',E.value_text))                                   MODELO,
+       max(decode(b.parameter_code,'HR',COALESCE(b.measured_value,b.recorded_value)))   ULT_HORIMETRO,              
+       max(decode(b.parameter_code,'HR',b.reg_date ))                                   DATA_ULT_HORIMETRO,
+       max(decode(b.parameter_code,'OD',COALESCE(b.measured_value,b.recorded_value)))   ULT_ODOMETRO,
+       max(decode(b.parameter_code,'OD',b.reg_date))                                    DATA_ULT_ODOMETRO,
+       max(decode(b.parameter_code,'COMB',b.recorded_value))                            ULT_ABASTECIMENTO,
+       max(decode(b.parameter_code,'COMB',b.reg_date))                                  DATA_ULT_ABASTECIMENTO,
+       max(decode(b.parameter_code,'LUB',b.recorded_value))                             ULT_LUBRIFICACAO,
+       max(decode(b.parameter_code,'LUB',b.reg_date))                               DATA_ULT_LUBRIFICACAO
+
+from ifslaf.EQUIPMENT_SERIAL_UIV a
+join IFSLAF.TECHNICAL_OBJECT_REFERENCE F        on (A.key_ref = F.key_ref)
+left join IFSLAF.TECHNICAL_SPECIFICATION_BOTH E on (E.technical_spec_no = F.technical_spec_no)
+left join IFSLAF.EQUIP_OBJECT b                        on (b.mch_code = a.mch_code) 
+group by a.mch_code,
+         f.ok_sign,
+         F.dt_ok
