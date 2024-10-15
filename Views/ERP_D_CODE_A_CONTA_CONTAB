@@ -1,0 +1,5 @@
+select DISTINCT(A.ACCOUNT) ID_CODE_A_CONTA_CONTAB,
+       COALESCE(IFSLAF.Account_group_API.Get_Description('01',A.ACCNT_GROUP),IFSLAF.Account_group_API.Get_Description('45',A.ACCNT_GROUP)) DESC_GRUPO_CONTAB,
+       IFSLAF.Enterp_Comp_Connect_V170_API.Get_Company_Translation('01', 'ACCRUL', 'AccountType', A.ACCNT_TYPE,NULL,'NO') DESC_TIPO_CONTA
+
+from ifslaf.ACCOUNT a
