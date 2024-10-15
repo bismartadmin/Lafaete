@@ -1,0 +1,39 @@
+SELECT b.company                                  ID_EMPRESA,
+       b.PARENT_COMPANY                           ID_EMPRESA_PAGTO,
+       b.series_id                                SERIE_PAGTO, 
+       c.trans_id                                 ID_TRANSACAO, 
+       b.PAYMENT_ID                               ID_PAGTO,
+       b.short_name                               ID_CONTA_MOVIMENTO,
+       b.voucher_no                               N_LANCTO,
+       b.VOUCHER_DATE                             DATA_LANCTO,
+       b.pay_date                                 DATA_PAGTO,
+       b.VOUCHER_TYPE                             TIPO_LANCTO,
+       b.payment_type_code                        TIPO_PAGTO,
+       C.LEDGER_ITEM_ID                           N_TITULO,
+       COALESCE((SELECT E.INVOICE_DATE FROM IFSLAF.INVOICE E WHERE E.INVOICE_ID = C.INVOICE_ID), b.VOUCHER_DATE) DATA_TITULO,
+       COALESCE((SELECT F.DUE_DATE FROM IFSLAF.CUST_INV_INTEREST_FINE_QRY F  WHERE F.INVOICE_ID = C.INVOICE_ID AND F.INSTALLMENT_ID = C.INSTALLMENT_ID), b.VOUCHER_DATE) DATA_VENCIMENTO,
+       C.INSTALLMENT_ID                           ID_PARCELA,
+       COALESCE(IFSLAF.PAYMENT_PLAN_API.GET_C_INVOICE_TYPE_ID(C.COMPANY, C.INVOICE_ID, C.INSTALLMENT_ID),'TÍTULO FINANCEIRO') TIPO_TITULO,
+       C.PAYMENT_TYPE_CODE                        TIPO_PAGAMENTO,
+       C.IDENTITY                                 ID_CLIENTE,
+       C.NAME                                     DESC_CLIENTE,
+       C.PAYER_IDENTITY                           ID_RECEBEDOR,
+       D.CODE_A                                   ID_CODE_A,
+       D.CODE_B                                   ID_CODE_B,
+       D.CODE_C                                   ID_CODE_C,
+       D.CODE_D                                   ID_CODE_D,
+       D.CODE_E                                   ID_CODE_E,
+       D.CODE_F                                   ID_CODE_F,
+       D.CODE_G                                   ID_CODE_G,
+       D.CODE_H                                   ID_CODE_H,
+       D.CODE_I                                   ID_CODE_I,
+       D.CODE_J                                   ID_CODE_J,
+       D.DOM_AMOUNT  * -1                         VALOR,
+       B.company||'-'||B.series_id||'-'||B.payment_id||'-'||B.SHORT_NAME               CHAVE_EMP_SERIE_PGTO_CONTA
+       
+
+FROM IFSLAF.PAYMENT_PER_CURRENCY_CU_QRY B 
+JOIN IFSLAF.LEDGER_TRANSACTION_CU_QRY C ON B.company = C.company and b.series_id = c.series_id and b.payment_id = c.payment_id
+JOIN IFSLAF.PAY_ACCOUNTING_ROW_CU_QRY D ON D.company = C.company AND C.series_id = D.series_id AND C.payment_id = D.payment_id AND C.trans_id = D.trans_id
+
+WHERE c.rolledback = 'FALSE' AND C.correction = 'FALSE'
