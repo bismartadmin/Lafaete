@@ -1,0 +1,48 @@
+SELECT A.ORDER_NO             ID_OV,
+       A.LINE_NO              ID_LINHA_OV,
+       A.REL_NO               ID_ENTREGA_OV,
+       A.order_id             TIPO_OV,
+       A.CONTRACT             ID_SITE,
+       COALESCE(IFSLAF.FA_OBJECT_API.Get_Code_H(company_ => A.COMPANY ,object_id_ => A.CF$_SERIAL_NO),IFSLAF.C_RECURRENT_AGREEMENT_cfp.Get_Cf$_Code_H(objkey_ => IFSLAF.C_RECURRENT_AGREEMENT_API.Get_Objkey(opportunity_no_ => A.C_OPPORTUNITY_NO ,agreement_id_ => A.C_AGREEMENT_ID)),A.CONTRACT) ID_CODE_H_APR_CUSTO,
+       A.CUSTOMER_NO          ID_CLIENTE,
+       A.CUSTOMER_NAME        DESC_CLIENTE,
+       IFSLAF.IDENTITY_INVOICE_INFO_API.Get_Identity_Type(a.COMPANY, a.CUSTOMER_NO, IFSLAF.CUSTOMER_INFO_API.GET_PARTY_TYPE(A.customer_no)) TIPO_PARCEIRO,
+       A.SALESMAN_CODE        ID_REPRESENTANTE,
+       IFSLAF.Sales_Part_Salesman_API.Get_Name(A.SALESMAN_CODE) DESC_REPRESENTANTE,
+       IFSLAF.CUSTOMER_INFO_ADDRESS_API.Get_City(A.CUSTOMER_NO, A.SHIP_ADDR_NO) CIDADE_ENTREGA,
+       IFSLAF.CUSTOMER_INFO_ADDRESS_API.Get_State(A.CUSTOMER_NO, A.SHIP_ADDR_NO) UF_ENTREGA,
+       IFSLAF.CUSTOMER_INFO_ADDRESS_API.Get_City(A.CUSTOMER_NO, A.SHIP_ADDR_NO)||'-'||IFSLAF.CUSTOMER_INFO_ADDRESS_API.Get_State(A.CUSTOMER_NO, A.SHIP_ADDR_NO) CIDADE_UF,
+       A.CATALOG_NO           ID_MATERIAL,
+       A.CATALOG_DESC         DESC_MATERIAL,
+       A.CATALOG_NO||'-'||A.CONTRACT                       CHAVE_MATERIAL_SITE,
+       A.CF$_SERIAL_NO        SERIAL,
+       A.BUY_QTY_DUE          QTDE,
+       A.STATE                STATUS_LINHA,
+       COALESCE(A.C_OPPORTUNITY_NO, IFSLAF.ORDER_QUOTATION_API.Get_Business_Opportunity_No(IFSLAF.CUSTOMER_ORDER_API.Get_Quotation_No(A.order_no)))    ID_OPORTUNIDADE,
+       A.C_AGREEMENT_ID       N_CONTRATO,
+       A.C_AGREEMENT_LINE_NO  N_LINHA_CONTRATO,
+       IFSLAF.CUSTOMER_ORDER_API.Get_Quotation_No(A.order_no) N_COTACAO_VENDAS,
+       a.CF$_STATUS_EQUIPMENT STATUS_OPERACIONAL,
+       A.DATE_ENTERED         DATA_CRIACAO,
+       COALESCE(A.CF$_LOGISTICS_RESCHEDULING,A.CF$_DATE_LOGISTICA, A.CF$_PCP_DATE,A.WANTED_DELIVERY_DATE ) DATA_PREVISTA,
+       A.CF$_CUSTOMER_MOBILIZATION MOB_CLIENTE,
+       a.CF$_WITHDRAW_CALENDAR RETIRAR_AGENDA,
+       a.CF$_REASON_WITHDRAWAL MOT_RETIRAR_AGENDA,
+       A.CF$_NEW_CONTRACTS_VALUE VALOR_MENSAL,
+       TO_DATE(CUSTOMER_ORDER_LINE_API.Get_Objversion(order_no_ => A.ORDER_NO,line_no_ => A.LINE_NO,rel_no_ => A.REL_NO,line_item_no_ => A.LINE_ITEM_NO),'YYYY/MM/DD HH24:MI:SS') ULT_ATUALIZACAO
+        
+  FROM IFSLAF.CUSTOMER_ORDER_JOIN_CFV A
+ WHERE A.OBJSTATE NOT IN ('Cancelled','Invoiced','Delivered') 
+ AND (IFSLAF.C_RECURRENT_AGREEMENT_API.Get_State(ifslaf.customer_order_api.Get_Business_Opportunity_No(a.ORDER_NO),ifslaf.customer_order_api.Get_C_Agreement_Id(a.ORDER_NO)) <> 'Finalizado' OR IFSLAF.C_RECURRENT_AGREEMENT_API.Get_State(ifslaf.customer_order_api.Get_Business_Opportunity_No(a.ORDER_NO),ifslaf.customer_order_api.Get_C_Agreement_Id(a.ORDER_NO)) IS NULL)
+           AND (IFSLAF.C_RECURRENT_AGREEMENT_API.Get_Advance_Payment_Db(ifslaf.customer_order_api.Get_Business_Opportunity_No(a.ORDER_NO),ifslaf.customer_order_api.Get_C_Agreement_Id(a.ORDER_NO)) <> 'TRUE' OR IFSLAF.C_RECURRENT_AGREEMENT_API.Get_Advance_Payment_Db(ifslaf.customer_order_api.Get_Business_Opportunity_No(a.ORDER_NO),ifslaf.customer_order_api.Get_C_Agreement_Id(a.ORDER_NO)) IS NULL)
+              AND NOT EXISTS (SELECT 1 FROM IFSLAF.C_MEASUR_BULLETIN_SERVICE C WHERE IFSLAF.HISTORICAL_SEPARATE_API.Get_Cust_Order_No(C.wo_no) = A.ORDER_NO AND   IFSLAF.HISTORICAL_SEPARATE_API.Get_CUST_ORDER_LINE_NO(C.wo_no) = A.LINE_NO AND IFSLAF.HISTORICAL_SEPARATE_API.Get_CUST_ORDER_REL_NO(C.wo_no) = A.REL_NO )
+           AND EXISTS (SELECT 1
+          FROM (SELECT B.CON_ORDER_NO
+                  FROM IFSLAF.ORDER_QUOTATION_LINE B
+                UNION ALL
+                SELECT C.DELIVERY_ORDER_NO
+                  FROM IFSLAF.C_REC_AGREEMENT_ITEM C
+                UNION ALL
+                SELECT C.SERVICE_ORDER_NO
+                  FROM IFSLAF.C_REC_AGREEMENT_ITEM C) SUB
+         WHERE SUB.CON_ORDER_NO = a.ORDER_NO)
