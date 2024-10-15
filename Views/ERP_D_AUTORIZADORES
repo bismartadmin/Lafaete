@@ -1,0 +1,8 @@
+SELECT A.authorize_id                                         ID_AUTORIZADOR,
+       IFSLAF.PURCHASE_AUTHORIZER_API.Get_Name(A.AUTHORIZE_ID)       DESC_AUTORIZADOR,
+       A.userid                                               USUARIO  
+
+FROM IFSLAF.PURCHASE_AUTHORIZER A
+GROUP BY A.authorize_id                                         ,
+
+       A.userid
