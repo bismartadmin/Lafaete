@@ -1,0 +1,3 @@
+select  DISTINCT (a.CODE_G) ID_CODE_G_LINHA,
+        A.description DESC_CODE_G_LINHA
+        from IFSLAF.CODE_G a
