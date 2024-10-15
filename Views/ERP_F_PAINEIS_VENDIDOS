@@ -1,0 +1,22 @@
+SELECT a.CF$_DESC_VENDA                                           DESCRICAO_NEGOCIACAO,
+       A.CF$_PAINEL_VENDIDO                                       PAINEL_NEGOCIADO,
+       A.CF$_SETOR                                                SETOR,
+       B.ID_CODE_F_PROJETO,
+       B.DESC_CODE_F_PROJETO,
+       B.CHAVE_PROJETO_EMPRESA,
+       B.ID_CLIENTE,
+       B.DESC_CLIENTE,
+       B.VALOR_HORA,
+       A.CF$_DATA_PROPOSTA                                        DATA_PROPOSTA,
+       A.CF$_DATA_VENDA                                           DATA_VENDA,
+       A.CF$_DATA_INSTALACAO                                      DATA_INSTALACAO,
+       A.CF$_DATA_ENTREGA                                         DATA_ENTREGA_FINAL,
+       A.CF$_VALOR_PAINEL                                         VALOR_PAINEL,
+       A.CF$_VALOR_SUPOTE                                         VALOR_SUPORTE,
+       A.CF$_HORAS_ADICIONAIS                                     HORAS_ADICIONAIS_DE_CUSTOM,
+       (A.CF$_VALOR_PAINEL + (A.CF$_VALOR_SUPOTE * 12)
+        + (A.CF$_HORAS_ADICIONAIS * B.VALOR_HORA))                VALOR_TOTAL_ESPERADO
+       
+FROM ifslaf.B_S_PAINEIS_VENDIDOS_CLV a
+LEFT JOIN ifsinfo.erp_d_code_f_projeto b ON b.ID_CODE_F_PROJETO = a.cf$_Projeto
+LEFT JOIN IFSLAF.CUSTOMER_ORDER C ON C.ORDER_NO = A.cf$_Ov_Faturamento
