@@ -1,0 +1,17 @@
+select a.CONTRACT ID_SITE,
+       A.DESCRIPTION DESC_SITE,
+       A.CF$_CPNJ           CNPJ_SITE,
+       A.COMPANY ID_EMPRESA,
+       IFSLAF.COMPANY_API.Get_Name(A.COMPANY) DESC_EMPRESA,
+       A.CF$_SITE_HUMANUS AS SITE_HUM,
+       a.CF$_IMPOSTOS IMPOSTOS,
+       b.address ENDERECO,
+       C.CF$_LATITUDE AS "LATITUDE",
+       C.CF$_LONGITUDE AS "LONGITUDE",
+       A.CF$_CONTRACT_GROUP UNIDADE_GERENCIAL,
+       IFSLAF.COMPANY_API.Get_Association_No(company_ => A.COMPANY) N_ASSOCIACAO,
+       TO_DATE(a.objversion,'YYYY/MM/DD HH24:MI:SS') ULT_ATUALIZACAO    
+
+from ifslaf.COMPANY_SITE_cfv a 
+left join ifslaf.COMPANY_ADDRESS b on a.CONTRACT = b.address_id
+LEFT JOIN IFSLAF.BR_CITY_CFV C ON (((IFSLAF.CITY_CODE_API.Get_City_Name(C.country_code, C.state_code, C.county_code, C.CITY_CODE))||C.STATE_CODE) = B.city||B.state)
