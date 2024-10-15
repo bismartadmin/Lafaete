@@ -1,0 +1,25 @@
+SELECT a.payment_id                               ID_PAGTO_DIVERSOS,
+       A.series_id                                ID_SERIE,
+       A.PAYMENT_TYPE_CODE                        TIPO_PAGTO,
+       A.company                                  ID_EMPRESA,
+       A.VOUCHER_NO                               LANCTO,
+       A.voucher_date                             DATA_LANCTO,
+       B.posting_type_desc                        TIPO_BAIXA,
+       D.ASSOCIATED_SHORT_NAME                    ID_CONTA_MOV,
+       B.code_a                                   ID_CODE_A_CONTA,
+       B.code_B                                   ID_CODE_B_CR,
+       B.code_C                                   ID_CODE_C_SITE,
+       B.code_D                                   ID_CODE_D_NATUREZA,
+       B.code_E                                   ID_CODE_E_ATIVO,
+       B.code_F                                   ID_CODE_F_PROJETO,
+       B.code_G                                   ID_CODE_G_LINHA,
+       B.code_H                                   ID_CODE_H_APR_CUSTO,
+       B.code_I                                   ID_CODE_I_NEGOCIO,
+       B.dom_amount                               VALOR_PAGO
+
+
+
+from ifslaf.PAYMENT_PER_CURRENCY_GEN_QRY a
+join ifslaf.PAY_ACCOUNTING_ROW_GEN_QRY b on (a.company = b.company and a.series_id = b.series_id and a.payment_id = b.payment_id)
+OUTER APPLY (SELECT ASSOCIATED_SHORT_NAME FROM IFSLAF.CASH_TRANSACTION_CU_QRY C WHERE a.company = C.company and a.series_id = C.series_id and a.payment_id = C.payment_id FETCH FIRST ROW ONLY) D
+WHERE (SELECT E.STATE FROM IFSLAF.MIXED_PAYMENT E WHERE E.company = A.company AND A.voucher_no = E.voucher_no_ref) = 'Aprovado'
