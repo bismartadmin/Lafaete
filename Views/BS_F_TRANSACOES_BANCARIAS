@@ -1,0 +1,88 @@
+WITH Fluxo_Blocos AS (
+    SELECT * FROM IFSINFO.BS_F_FLUXO_BLOCO_A
+    --Bloco A -  Recebimento de Título de Cliente, sem rollback
+    UNION ALL
+    SELECT * FROM IFSINFO.BS_F_FLUXO_BLOCO_B_IAL
+    --Bloco B - Recebimento de Adiantamento de Cliente, sem rollback
+    UNION ALL
+    SELECT * FROM IFSINFO.BS_F_FLUXO_BLOCO_C_IAL
+    --Bloco C - Recebimento de Juros e Multa de Cliente
+    UNION ALL
+    SELECT * FROM IFSINFO.BS_F_FLUXO_BLOCO_D_IAL
+    --Bloco D - Pagamento de Adiantamento de Fornecedor sem rollback
+    UNION ALL
+    SELECT * FROM IFSINFO.BS_F_FLUXO_BLOCO_E_IAL
+    --Bloco E - Desconto de Pagamento do Fornecedor sem rollback
+    UNION ALL
+    SELECT * FROM IFSINFO.BS_F_FLUXO_BLOCO_F_IAL
+    --Bloco F - Pagamentos Diversos sem rollback
+    UNION ALL
+    SELECT * FROM IFSINFO.BS_F_FLUXO_BLOCO_G_IAL
+    --Bloco G - Pagamento de título de fornecedor sem rollback
+    UNION ALL
+    SELECT * FROM IFSINFO.BS_F_FLUXO_BLOCO_H_IAL
+    --Bloco H - Pagamento de Juros e Multa de Fornecedor sem rollback
+    UNION ALL
+    SELECT * FROM IFSINFO.BS_F_FLUXO_BLOCO_I_IAL
+    --Bloco I - Recebimento Multi Company de Cliente
+    UNION ALL
+    SELECT * FROM IFSINFO.BS_F_FLUXO_BLOCO_J_IAL
+    --Bloco J - Adiantamento de Fornecedor com rollback
+    UNION ALL
+    SELECT * FROM IFSINFO.BS_F_FLUXO_BLOCO_K_IAL
+    --Bloco K - Recebimento Multi company de fornecedor
+    UNION ALL
+    SELECT * FROM IFSINFO.BS_F_FLUXO_BLOCO_L_IAL
+    --Bloco L - Pagamento multi company de fornecedor
+    UNION ALL
+    SELECT * FROM IFSINFO.BS_F_FLUXO_BLOCO_M_IAL
+    --Bloco M - de fornecedor
+    UNION ALL
+    SELECT * FROM IFSINFO.BS_F_FLUXO_BLOCO_N_IAL
+    --Bloco N - Inclusao do Adiantamento e Estorno de Cliente ref Id Pagto 282
+)
+SELECT 
+    SUBTAB.COMPANY           AS ID_EMPRESA,
+    SUBTAB.PARENT_COMPANY    AS ID_EMPRESA_PAGTO,
+    SUBTAB.SHORT_NAME        AS ID_CONTA_MOVIMENTO,
+    SUBTAB.VOUCHER_DATE      AS DATA_LANCTO,
+    SUBTAB.PAY_DATE          AS DATA_PAGTO,
+    SUBTAB.VOUCHER_NO        AS N_LANCTO,
+    SUBTAB.PAYMENT_ID        AS ID_PAGTO,
+    SUBTAB.TRANS_ID          AS ID_TRANSACAO,
+    SUBTAB.SERIES_ID         AS SERIE_PAGTO, 
+    SUBTAB.VOUCHER_TYPE      AS TIPO_LANCTO,
+    SUBTAB.PAYMENT_TYPE_CODE AS TIPO_PAGTO,
+    coalesce(a.INVOICE_NO,SUBTAB.LEDGER_ITEM_ID)    AS N_TITULO,
+    coalesce(a.INVOICE_ID,IFSLAF.INVOICE_API.Get_Invoice_Id_Db(SUBTAB.COMPANY, SUBTAB.IDENTITY, 'SUPPLIER', SUBTAB.ID_SERIE, coalesce(a.INVOICE_NO,SUBTAB.LEDGER_ITEM_ID))) AS INVOICE_ID,
+    SUBTAB.INSTALLMENT_ID    AS ID_PARCELA,
+    SUBTAB.TIPO_TITULO       AS TIPO_TITULO,
+    SUBTAB.LEDGER_DATE       AS DATA_TITULO,
+    SUBTAB.C_DUE_DATE_ORG    AS DATA_VENCIMENTO_ORIGINAL,
+    SUBTAB.DUE_DATE          AS DATA_VENCIMENTO,
+    SUBTAB.IDENTITY          AS ID_PARCEIRO,
+    SUBTAB.NAME              AS DESC_PARCEIRO,
+    SUBTAB.ESPECIE_PARCEIRO  AS ESPECIE_PARCEIRO,
+    SUBTAB.TIPO_PARCEIRO     AS TIPO_PARCEIRO,
+    SUBTAB.PAYER_IDENTITY    AS ID_RECEBEDOR,
+    coalesce(b.code_a,SUBTAB.CODE_A)            AS ID_CODE_A, 
+    coalesce(b.code_b,SUBTAB.CODE_B)            AS ID_CODE_B,
+    coalesce(b.code_c,SUBTAB.CODE_C)            AS ID_CODE_C,
+    coalesce(b.code_d,SUBTAB.CODE_D)            AS ID_CODE_D,
+    coalesce(b.code_e,SUBTAB.CODE_E)            AS ID_CODE_E,
+    coalesce(b.code_f,SUBTAB.CODE_F)            AS ID_CODE_F,
+    coalesce(b.code_g,SUBTAB.CODE_G)            AS ID_CODE_G,
+    coalesce(b.code_h,SUBTAB.CODE_H)            AS ID_CODE_H,
+    coalesce(b.code_i,SUBTAB.CODE_I)            AS ID_CODE_I,
+    coalesce(b.code_j,SUBTAB.CODE_J)            AS ID_CODE_J,
+    round((NVL(SUBTAB.DOM_AMOUNT, 0) * nvl(a.PERCENT_GRUPO,1)) * nvl(b.percent,1),4) AS VALOR, 
+    SUBTAB.TIPO_MOVIMENTO    AS TIPO_MOVIMENTO,
+    SUBTAB.OBJVERSION        AS OBJ_VERSION,
+    SUBTAB.POSTING_TYPE,
+    SUBTAB.OBS,
+    SUBTAB.ADV_INV           AS TITULO_ANTECIPADO,
+    SUBTAB.ID_SERIE,
+    SUBTAB.BLOCO_CODIGO
+FROM Fluxo_Blocos SUBTAB
+left join ifsinfo.bs_f_agrup_titulo_forn a on a.company = SUBTAB.COMPANY and SUBTAB.LEDGER_ITEM_ID = a.GROUP_ID 
+left join ifsinfo.bs_f_rateio_titu_forn b on b.company = SUBTAB.COMPANY and coalesce(a.INVOICE_ID,IFSLAF.INVOICE_API.Get_Invoice_Id_Db(SUBTAB.COMPANY, SUBTAB.IDENTITY, 'SUPPLIER', SUBTAB.ID_SERIE, coalesce(a.INVOICE_NO,SUBTAB.LEDGER_ITEM_ID))) = b.invoice_id
