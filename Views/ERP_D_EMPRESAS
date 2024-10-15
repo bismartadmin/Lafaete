@@ -1,0 +1,5 @@
+select a.COMPANY           ID_EMPRESA,
+       A.NAME              DESC_EMPRESA,
+       A.CREATION_DATE     DATA_CRIACAO
+       
+from ifslaf.COMPANY a
