@@ -1,0 +1,3 @@
+select  DISTINCT (a.CODE_c) ID_CODE_C_SITE,
+        A.description DESC_CODE_C_SITE
+from IFSLAF.CODE_C a
