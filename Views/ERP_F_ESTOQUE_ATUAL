@@ -1,0 +1,21 @@
+SELECT A.SERIAL_NO                                                                SERIAL,
+       A.PART_NO                                                                  ID_MATERIAL,
+       IFSLAF.INVENTORY_PART_API.GET_DESCRIPTION(A.CONTRACT, A.PART_NO)           DESC_MATERIAL,
+       ifslaf.Inventory_Location_API.Get_Location_Name(a.CONTRACT, a.LOCATION_NO) LOCAL_ESTOQUE,
+       A.contract                                                                 ID_SITE,
+       IFSLAF.COMPANY_SITE_API.Get_Company(contract_ => A.contract)               ID_EMPRESA,
+       A.part_no||'-'||A.contract                                                 CHAVE_MATERIAL_SITE,
+       a.WAREHOUSE                                                                ARMAZEM,
+       A.QTY_ONHAND                                                               QTDE_EM_ESTOQUE,
+       A.QTY_RESERVED                                                             QTDE_RESERVADA,
+       a.QTY_ONHAND - a.QTY_RESERVED                                              QTDE_DISPONIVEL,
+       A.UNIT_COST                                                                VALOR_UNITARIO,
+       A.UNIT_COST * A.QTY_ONHAND                                                 VALOR_TOTAL_EM_ESTOQUE,
+       A.CREATE_DATE                                                              DATA_CRIACAO,
+       A.receipt_date                                                             DATA_RECEBIMENTO,
+       A.last_activity_date                                                       ULT_DATA_ATIVIDADE,
+       TO_DATE(a.objversion,'YYYY/MM/DD HH24:MI:SS')                              ULT_ALTERACAO
+       
+
+  FROM IFSLAF.INVENTORY_PART_IN_STOCK_UIV A
+ WHERE A.QTY_ONHAND > 0
