@@ -1,0 +1,35 @@
+SELECT OVE.SALESMAN_CODE                                                                                                                                        ID_REPRESENTANTE,
+       ifslaf.Sales_Part_Salesman_API.Get_Name(OVE.SALESMAN_CODE)                                                                                               DESC_REPRESENTANTE,
+       OVE.ORDER_NO                                                                                                                                             ID_OV,
+       COALESCE(ifslaf.CUSTOMER_ORDER_API.Get_Business_Opportunity_No(OVE.ORDER_NO),
+       ifslaf.ORDER_QUOTATION_API.Get_Business_Opportunity_No(ifslaf.CUSTOMER_ORDER_API.Get_Quotation_No(OVE.ORDER_NO)))                                        ID_OPORTUNIDADE,
+       ifslaf.CUSTOMER_ORDER_API.Get_C_Agreement_Id(OVE.ORDER_NO)                                                                                               N_CONTRATO,
+       ifslaf.CUSTOMER_ORDER_API.Get_Quotation_No(OVE.ORDER_NO)                                                                                                 N_COTACAO,
+       OVE.ORDER_ID                                                                                                                                             TIPO_ORDEM,
+       OVE.COMPANY                                                                                                                                              ID_EMPRESA,
+       OVE.CONTRACT                                                                                                                                             ID_SITE,
+       ove.CUSTOMER_NO                                                                                                                                          ID_CLIENTE,
+       ove.CUSTOMER_NAME                                                                                                                                        DESC_CLIENTE,
+       OVE.CF$_NEW_CONTRACTS_VALUE                                                                                                                              VALOR_MENSAL,
+       To_number(OVE.CF$_VALOR_TOTAL_AJUSTADO)                                                                                                                  VALOR_TOTAL,
+       ifslaf.CUSTOMER_ORDER_api.Get_Date_Entered(order_no_ => ove.ORDER_NO)                                                                                    DATA_CRIACAO,
+       COALESCE(IFSLAF.C_REC_AGREEMENT_INFO_API.GET_DIGITAL_AGREE_STATE(COALESCE(ifslaf.CUSTOMER_ORDER_API.Get_Business_Opportunity_No(OVE.ORDER_NO),
+       ifslaf.ORDER_QUOTATION_API.Get_Business_Opportunity_No(ifslaf.CUSTOMER_ORDER_API.Get_Quotation_No(OVE.ORDER_NO))), ifslaf.CUSTOMER_ORDER_API.Get_C_Agreement_Id(OVE.ORDER_NO)),ifslaf.CUSTOM_FIELD_ENUM_VALUES_API.Get_Client_Value('DOCUMENTSTATE',IFSLAF.ORDER_QUOTATION_CFP.Get_Cf$_Document_State(ifslaf.ORDER_QUOTATION_API.Get_Objkey(ifslaf.CUSTOMER_ORDER_API.Get_Quotation_No(OVE.ORDER_NO)))))                     STATUS_CONTRATO,
+       IFSLAF.ORDER_CANCEL_REASON_API.GET_REASON_DESCRIPTION(OVE.CANCEL_REASON) MOTIVO_CANCELAMENTO,
+       ove.CF$_OV_NOTES NOTAS
+            
+          
+  FROM IFSLAF.CUSTOMER_ORDER_JOIN_CFV OVE
+ WHERE OVE.OBJSTATE = 'Cancelled'
+   AND OVE.ORDER_ID IN ('OR', 'OV', 'SEO')
+   AND EXISTS (SELECT 1
+          FROM (SELECT B.CON_ORDER_NO
+                  FROM IFSLAF.ORDER_QUOTATION_LINE B
+                UNION ALL
+                SELECT C.DELIVERY_ORDER_NO
+                  FROM IFSLAF.C_REC_AGREEMENT_ITEM C
+                UNION ALL
+                SELECT C.SERVICE_ORDER_NO
+                  FROM IFSLAF.C_REC_AGREEMENT_ITEM C) SUB
+         WHERE SUB.CON_ORDER_NO = OVE.ORDER_NO)
+         and IFSLAF.IDENTITY_INVOICE_INFO_API.Get_Identity_Type(ove.COMPANY, ove.CUSTOMER_NO, 'Cliente') <> 'Interno'
