@@ -1,0 +1,472 @@
+SELECT CAP.N_TITULO,
+       CAP.ID_PARCELA,
+       CAP.STATUS_TITULO,
+       CAP.STATUS_TITULO_AJUST,
+       CAP.ID_TITULO,
+       CAP.ID_OC,
+       CAP.N_LANCTO,
+       CAP.SERIE,
+       CAP.DATA_TITULO,
+       CAP.DATA_VENCIMENTO,
+       CAP.DATA_LANCTO,
+       CAP.ID_EMPRESA,
+       CAP.ID_FORNECEDOR,
+       CAP.DESC_FORNECEDOR,
+       CAP.GRUPO_FORNECEDOR,
+       CAP.CNPJ_CPF_PARCEIRO,
+       CAP.TIPO_PARCEIRO,
+       CAP.PERCENTUAL,
+       CAP.VALOR_PARCELA,
+       CAP.DESCONTO_USADO,
+       CAP.IMPOSTOS_RETIDOS,
+       CAP.VALOR_PAGO,
+       CAP.VALOR_JUROS,
+       CAP.VALOR_MULTA,
+       CAP.VALOR_EM_ABERTO,
+       CAP.TIPO_PAGAMENTO,
+       CAP.DATA_PAGAMENTO,
+       CAP.DATA_BAIXA,
+       CAP.PERIODO_BAIXA,
+       CAP.CODIGO_BAIXA,
+       CAP.ID_CODE_A,
+       CAP.ID_CODE_B,
+       CAP.ID_CODE_C,
+       CAP.ID_CODE_D,
+       CAP.ID_CODE_E,
+       CAP.ID_CODE_F,
+       CAP.ID_CODE_G,
+       CAP.ID_CODE_H,
+       CAP.ID_CODE_I,
+       CAP.ID_CODE_J,
+       CAP.METODO_PGTO,
+       CAP.ID_CONTA_MOV,
+       PPC.parent_company ID_EMPRESA_PAGAMENTO
+FROM (SELECT 
+      A.LEDGER_ITEM_ID N_TITULO,
+      A.INSTALLMENT_ID ID_PARCELA,
+      A.CLIENT_INV_STATE STATUS_TITULO,
+      CASE A.FULLY_PAID 
+        WHEN 'TRUE' 
+        THEN 'Pago'
+        ELSE
+          CASE
+            WHEN A.DUE_DATE < SYSDATE
+            THEN 'Vencido'
+            ELSE 'A vencer'
+          END
+      END STATUS_TITULO_AJUST,
+      A.INVOICE_ID ID_TITULO,
+      C.ORDER_NO ID_OC,
+      A.VOUCHER_NO_REF N_LANCTO,
+      A.LEDGER_ITEM_SERIES_ID SERIE,
+      A.LEDGER_DATE DATA_TITULO,
+      
+      (SELECT C.DUE_DATE
+      FROM IFSLAF.ABSTRACT_PAYMENT_PLAN2 C
+      WHERE C.INVOICE_ID = A.INVOICE_ID
+      AND C.INSTALLMENT_ID = A.INSTALLMENT_ID
+      AND C.IDENTITY = A.IDENTITY) DATA_VENCIMENTO_ORIGINAL,
+      
+      A.DUE_DATE DATA_VENCIMENTO,
+      coalesce(b.voucher_date,A.DUE_DATE)   DATA_LANCTO,
+      A.COMPANY ID_EMPRESA,
+      A.IDENTITY ID_FORNECEDOR,
+      A.NAME DESC_FORNECEDOR,
+      A.GROUP_ID GRUPO_FORNECEDOR,
+      A.C_CNPJ CNPJ_CPF_PARCEIRO,
+      IFSLAF.IDENTITY_INVOICE_INFO_API.GET_IDENTITY_TYPE(A.COMPANY, A.IDENTITY, 'Fornecedor') TIPO_PARCEIRO,
+      
+      
+      NVL((ROUND((z.PERCENTUAL),4)),1) AS PERCENTUAL,
+      
+      ROUND(((NVL(A.INV_AMOUNT, 0) * NVL(z.PERCENTUAL, 1))),2) AS VALOR_PARCELA,
+             
+      round((NVL(B.USED_DISCOUNT, 0) * NVL(z.PERCENTUAL, 1)),2) DESCONTO_USADO,
+      round((NVL(NVL(B.WITHHELD_TAX_CURR_AMOUNT,0)-NVL(B.WITHHELD_REDUCT_CURR_AMOUNT,0), 0) * NVL(z.PERCENTUAL, 1)),2) IMPOSTOS_RETIDOS,
+      
+      ROUND(((NVL(B.PAID_AMOUNT, 0) * NVL(z.PERCENTUAL, 1))),2) VALOR_PAGO,
+      
+      round((NVL(B.INTEREST_CURR_AMOUNT, 0) * NVL(z.PERCENTUAL, 1)),2) VALOR_JUROS,
+      round((NVL(B.FINE_CURR_AMOUNT, 0) * NVL(z.PERCENTUAL, 1)),2) VALOR_MULTA,
+      round((A.OPEN_AMOUNT * NVL(z.PERCENTUAL, 1)),2) VALOR_EM_ABERTO,
+      B.PAYMENT_TYPE_CODE TIPO_PAGAMENTO,
+      B.PAY_DATE DATA_PAGAMENTO,
+      B.VOUCHER_DATE DATA_BAIXA,
+      B.VOUCHER_PERIOD PERIODO_BAIXA,
+      to_char(B.PAYMENT_ID) CODIGO_BAIXA,
+      Z.CODE_A ID_CODE_A,
+      z.CODE_B ID_CODE_B,
+      z.CODE_C ID_CODE_C,
+      Z.CODE_D ID_CODE_D,
+      z.CODE_E ID_CODE_E,
+      z.CODE_F ID_CODE_F,
+      z.CODE_G ID_CODE_G,
+      z.CODE_H ID_CODE_H,
+      z.CODE_I ID_CODE_I,
+      Z.CODE_J ID_CODE_J,
+      x.WAY_ID METODO_PGTO,
+      coalesce(IFSLAF.PAYMENT_PER_CURRENCY_API.GET_SHORT_NAME(B.COMPANY, B.SERIES_ID, B.PAYMENT_ID, B.CURRENCY),N.short_name) ID_CONTA_MOV 
+FROM
+      IFSLAF.SUPP_INV_INTEREST_FINE_QRY A
+      LEFT JOIN IFSLAF.LEDGER_TRANSACTION_SU_QRY B ON (A.COMPANY = B.COMPANY AND A.IDENTITY = B.IDENTITY AND A.PARTY_TYPE_DB = B.PARTY_TYPE_DB AND A.LEDGER_ITEM_ID = B.LEDGER_ITEM_ID AND A.LEDGER_ITEM_SERIES_ID = B.LEDGER_ITEM_SERIES_ID AND A.LEDGER_ITEM_VERSION = B.LEDGER_ITEM_VERSION AND A.INSTALLMENT_ID = B.INSTALLMENT_ID AND B.PAYMENT_TYPE_CODE_DB NOT IN ('COMPSUPPROLLBACK', 'TAXWITHHOLD') AND B.ROLLEDBACK = 'FALSE')
+      LEFT JOIN  IFSLAF.PAYMENT_WAY_PER_IDENTITY x ON (x.COMPANY = A.COMPANY AND a.IDENTITY = x.IDENTITY AND x.DEFAULT_PAYMENT_WAY = 'TRUE' AND x.party_type_db = 'SUPPLIER')
+      OUTER APPLY (SELECT N.SHORT_NAME
+                   FROM IFSLAF.CASH_ACCOUNT_CUSTOMER N
+                   WHERE N.COMPANY = A.COMPANY
+                   AND N.DEFAULT_FLAG = 'TRUE') N 
+      LEFT JOIN (
+                SELECT
+                       NFE.INVOICE_COMPANY  AS COMPANY,
+                       NFE.INVOICE_ID,
+                       NFE.AP_INVOICE_NO    AS INVOICE_NO,
+                       NFE.ORDER_NO,
+                       NFE.CODE_a,
+                       NFE.CODE_B,
+                       NFE.CODE_C,
+                       NFE.CODE_D,
+                       NFE.CODE_E,
+                       NFE.CODE_F,
+                       NFE.CODE_G,
+                       NFE.CODE_H,
+                       NFE.CODE_I,
+                       NFE.CODE_j,
+                       NFE.ID_NF,
+                       CAB.FISCAL_NOTE_NO   AS NUMERO_NF,
+                       CAB.EMISSION_DATE    AS DATA_EMISSAO_NF,
+                       CAB.DOCUMENT_NO      AS TIPO_DOC,
+                       CAB.NOTE_TOTAL_VALUE AS VALOR_NOTA,
+                       CASE
+                         WHEN CAB.MERCHANDISE_VALUE - NVL(IFSLAF.FISCAL_NOTE_API.GET_MERCHANDISE_VALUE(CAB.FISCAL_NOTE_ORIGIN_ID), 0) < 0
+                         THEN CAB.MERCHANDISE_VALUE
+                         ELSE CAB.MERCHANDISE_VALUE - NVL(IFSLAF.FISCAL_NOTE_API.GET_MERCHANDISE_VALUE(CAB.FISCAL_NOTE_ORIGIN_ID), 0) 
+                       END AS VALOR_MERCADORIA,
+                       IFSLAF.MAN_SUPP_INVOICE_API.GET_GROSS_AMOUNT(NFE.INVOICE_COMPANY, NFE.INVOICE_ID) AS VALOR_TITULO,
+                       SUM(NVL(NULLIF(ITE.ITEM_TOTAL_VALUE, 0), ROUND(ITE.ITEM_QUANTITY * ITE.UNITARY_GROSS_PRICE - NVL(ITE.DISCOUNT_VALUE, 0), 2))) AS VALOR_ITEM,
+--                       SUM(NVL(NULLIF(ITE.ITEM_TOTAL_VALUE, 0), ROUND(ITE.ITEM_QUANTITY * ITE.UNITARY_GROSS_PRICE - NVL(ITE.DISCOUNT_VALUE, 0), 2)) / CASE WHEN CAB.DOCUMENT_NO IN ('NFES', 'NFS', 'REC', 'RPA') THEN CAB.NOTE_TOTAL_VALUE ELSE NVL(NULLIF(CASE WHEN CAB.MERCHANDISE_VALUE - NVL(IFSLAF.FISCAL_NOTE_API.GET_MERCHANDISE_VALUE(CAB.FISCAL_NOTE_ORIGIN_ID), 0) < 0 THEN CAB.MERCHANDISE_VALUE ELSE CAB.MERCHANDISE_VALUE - NVL(IFSLAF.FISCAL_NOTE_API.GET_MERCHANDISE_VALUE(CAB.FISCAL_NOTE_ORIGIN_ID), 0) END, 0), NVL(NULLIF(ITE.ITEM_TOTAL_VALUE, 0), ROUND(ITE.ITEM_QUANTITY * ITE.UNITARY_GROSS_PRICE, 2))) END) AS PERCENTUAL2,
+                       CASE WHEN (SUM(NVL(NULLIF(ITE.ITEM_TOTAL_VALUE, 0), ROUND(ITE.ITEM_QUANTITY * ITE.UNITARY_GROSS_PRICE - NVL(ITE.DISCOUNT_VALUE, 0), 2)) / CASE WHEN CAB.DOCUMENT_NO IN ('NFES', 'NFS', 'REC', 'RPA') THEN CAB.NOTE_TOTAL_VALUE ELSE NVL(NULLIF(CASE WHEN CAB.MERCHANDISE_VALUE - NVL(IFSLAF.FISCAL_NOTE_API.GET_MERCHANDISE_VALUE(CAB.FISCAL_NOTE_ORIGIN_ID), 0) < 0 THEN CAB.MERCHANDISE_VALUE ELSE CAB.MERCHANDISE_VALUE - NVL(IFSLAF.FISCAL_NOTE_API.GET_MERCHANDISE_VALUE(CAB.FISCAL_NOTE_ORIGIN_ID), 0) END, 0), NVL(NULLIF(ITE.ITEM_TOTAL_VALUE, 0), ROUND(ITE.ITEM_QUANTITY * ITE.UNITARY_GROSS_PRICE, 2))) END)) >1
+                            THEN 1
+                            ELSE (SUM(NVL(NULLIF(ITE.ITEM_TOTAL_VALUE, 0), ROUND(ITE.ITEM_QUANTITY * ITE.UNITARY_GROSS_PRICE - NVL(ITE.DISCOUNT_VALUE, 0), 2)) / CASE WHEN CAB.DOCUMENT_NO IN ('NFES', 'NFS', 'REC', 'RPA') THEN CAB.NOTE_TOTAL_VALUE ELSE NVL(NULLIF(CASE WHEN CAB.MERCHANDISE_VALUE - NVL(IFSLAF.FISCAL_NOTE_API.GET_MERCHANDISE_VALUE(CAB.FISCAL_NOTE_ORIGIN_ID), 0) < 0 THEN CAB.MERCHANDISE_VALUE ELSE CAB.MERCHANDISE_VALUE - NVL(IFSLAF.FISCAL_NOTE_API.GET_MERCHANDISE_VALUE(CAB.FISCAL_NOTE_ORIGIN_ID), 0) END, 0), NVL(NULLIF(ITE.ITEM_TOTAL_VALUE, 0), ROUND(ITE.ITEM_QUANTITY * ITE.UNITARY_GROSS_PRICE, 2))) END)) END AS PERCENTUAL
+                FROM (
+                     SELECT
+                           POI.INVOICE_COMPANY,
+                           POI.INVOICE_ID,
+                           POI.AP_INVOICE_NO,
+                           POI.ORDER_NO,
+                           POI.LINE_NO,
+                           POI.RELEASE_NO,
+                           POL.CODE_A,
+                           POL.CODE_B,
+                           POL.CODE_C,
+                           POL.CODE_D,
+                           POL.CODE_E,
+                           POL.CODE_F,
+                           POL.CODE_G,
+                           POL.CODE_H,
+                           POL.CODE_I,
+                           POL.CODE_J,
+                           IFSLAF.FISCAL_NOTE_API.GET_FISNOT_ID_BY_INVOIC_ID(POI.INVOICE_COMPANY, POI.INVOICE_ID) AS ID_NF
+                     FROM
+                           IFSLAF.PURCHASE_ORDER_INVOICE POI
+                           INNER JOIN IFSLAF.PURCHASE_ORDER_LINE_PART POL ON (POI.ORDER_NO = POL.ORDER_NO AND POI.LINE_NO = POL.LINE_NO AND POI.RELEASE_NO = POL.RELEASE_NO)
+                      ) NFE
+                    INNER JOIN IFSLAF.FN_CUST_PURC_ORDER_TAB AUX ON (NFE.ID_NF = AUX.FISCAL_NOTE_ID AND NFE.ORDER_NO = AUX.ORDER_NO AND NFE.LINE_NO = AUX.LINE_NO AND NFE.RELEASE_NO = AUX.REL_NO)
+                    INNER JOIN IFSLAF.FISCAL_NOTE_ITEM ITE ON (AUX.FISCAL_NOTE_ID = ITE.FISCAL_NOTE_ID AND AUX.ITEM_NUMBER = ITE.ITEM_NUMBER)
+                    INNER JOIN IFSLAF.FISCAL_NOTE CAB ON (AUX.FISCAL_NOTE_ID = CAB.FISCAL_NOTE_ID)
+                    GROUP BY
+                          NFE.INVOICE_COMPANY,
+                          NFE.INVOICE_ID,
+                          NFE.AP_INVOICE_NO,
+                          NFE.ORDER_NO,
+                          NFE.CODE_A,
+                          NFE.CODE_B,
+                          NFE.CODE_C,
+                          NFE.CODE_D,
+                          NFE.CODE_E,
+                          NFE.CODE_F,
+                          NFE.CODE_G,
+                          NFE.CODE_H,
+                          NFE.CODE_I,
+                          NFE.CODE_J,
+                          NFE.ID_NF,
+                          CAB.FISCAL_NOTE_NO,
+                          CAB.EMISSION_DATE,
+                          CAB.DOCUMENT_NO,
+                          CAB.NOTE_TOTAL_VALUE,
+                          CAB.MERCHANDISE_VALUE,
+                          CAB.FISCAL_NOTE_ORIGIN_ID
+                ) C ON (A.COMPANY = C.COMPANY AND A.INVOICE_ID = C.INVOICE_ID)
+      LEFT join (
+                   SELECT
+                           y.COMPANY,
+                           y.IDENTITY,
+                           y.invoice_id,
+                           y.ledger_item_id,
+                           y.voucher_no,
+                           y.INV_AMOUNT,
+                           x.AMOUNT,
+                           ((x.AMOUNT / y.INV_AMOUNT) / COUNT(y.installment_id))  AS PERCENTUAL,                           
+                           x.CODE_A,
+                           x.CODE_B,
+                           x.CODE_C,
+                           x.CODE_D,
+                           x.CODE_E,
+                           x.CODE_F,
+                           x.CODE_G,
+                           x.CODE_H,
+                           x.CODE_I,
+                           x.CODE_J     
+                    FROM
+                           IFSLAF.INC_INV_UTIL_VOU_QRY x
+                           INNER JOIN IFSLAF.SUPP_INV_INTEREST_FINE_QRY y ON (x.IDENTITY = y.IDENTITY and x.INVOICE_ID = y.INVOICE_ID and x.COMPANY = y.COMPANY AND x.VOUCHER_NO = y.VOUCHER_NO_REF)
+                    WHERE
+                           x.PARTY_TYPE = 'Fornecedor' 
+                           AND x.VOUCHER_TYPE = 'I' 
+                           AND x.ROW_ID IS NOT NULL
+                           AND y.INV_AMOUNT <> 0
+                    GROUP BY
+                           y.COMPANY,
+                           y.IDENTITY,
+                           y.invoice_id,
+                           y.ledger_item_id,
+                           y.voucher_no,
+                           y.INV_AMOUNT,
+                           x.AMOUNT,
+                           x.CODE_A,
+                           x.CODE_B,
+                           x.CODE_C,
+                           x.CODE_D,
+                           x.CODE_E,
+                           x.CODE_F,
+                           x.CODE_G,
+                           x.CODE_H,
+                           x.CODE_I,
+                           x.CODE_J) z ON (Z.IDENTITY = A.IDENTITY and Z.INVOICE_ID = a.INVOICE_ID and Z.COMPANY = A.COMPANY AND Z.VOUCHER_NO = A.VOUCHER_NO_REF)
+WHERE
+      (A.INV_AMOUNT <> 0)
+      AND (A.CLIENT_INV_STATE <> 'Cancelado')
+      AND A.LEDGER_ITEM_SERIES_ID = 'FI'
+
+
+UNION ALL
+
+
+SELECT
+      A.LEDGER_ITEM_ID N_TITULO,
+      A.INSTALLMENT_ID ID_PARCELA,
+      A.CLIENT_INV_STATE STATUS_TITULO,
+        
+      CASE A.FULLY_PAID 
+        WHEN 'TRUE' 
+        THEN 'Pago'
+        ELSE
+          CASE
+            WHEN A.DUE_DATE < SYSDATE
+            THEN 'Vencido'
+            ELSE 'A vencer'
+          END
+      END STATUS_TITULO_AJUST,
+            
+      A.INVOICE_ID ID_TITULO,
+      C.ORDER_NO ID_OC,
+      A.VOUCHER_NO_REF N_LANCTO,
+      A.LEDGER_ITEM_SERIES_ID SERIE,
+      A.LEDGER_DATE DATA_TITULO,
+          
+      (SELECT C.DUE_DATE
+      FROM IFSLAF.ABSTRACT_PAYMENT_PLAN2 C
+      WHERE C.INVOICE_ID = A.INVOICE_ID
+      AND C.INSTALLMENT_ID = A.INSTALLMENT_ID
+      AND C.IDENTITY = A.IDENTITY) DATA_VENCIMENTO_ORIGINAL,
+
+      A.DUE_DATE DATA_VENCIMENTO,
+      coalesce(b.voucher_date,A.DUE_DATE)   DATA_LANCTO,
+      A.COMPANY ID_EMPRESA,
+      A.IDENTITY ID_FORNECEDOR,
+      A.NAME DESC_FORNECEDOR,
+      A.GROUP_ID GRUPO_FORNECEDOR,
+      A.C_CNPJ CNPJ_CPF_PARCEIRO,
+      IFSLAF.IDENTITY_INVOICE_INFO_API.GET_IDENTITY_TYPE(A.COMPANY, A.IDENTITY, 'Fornecedor') TIPO_PARCEIRO,
+      C.PERCENTUAL PERCENTUAL,
+     (A.INV_AMOUNT * NVL(C.PERCENTUAL, 1)) VALOR_PARCELA,
+      NVL(B.USED_DISCOUNT, 0) * NVL(C.PERCENTUAL, 1) DESCONTO_USADO,
+      NVL(NVL(B.WITHHELD_TAX_CURR_AMOUNT,0)-NVL(B.WITHHELD_REDUCT_CURR_AMOUNT,0), 0) * NVL(C.PERCENTUAL, 1) IMPOSTOS_RETIDOS,
+      (NVL(B.PAID_AMOUNT, 0) * NVL(C.PERCENTUAL, 1)) VALOR_PAGO,
+      NVL(B.INTEREST_CURR_AMOUNT, 0) * NVL(C.PERCENTUAL, 1) VALOR_JUROS,
+      NVL(B.FINE_CURR_AMOUNT, 0) * NVL(C.PERCENTUAL, 1) VALOR_MULTA,
+      A.OPEN_AMOUNT * NVL(C.PERCENTUAL, 1) VALOR_EM_ABERTO,
+      B.PAYMENT_TYPE_CODE TIPO_PAGAMENTO,
+      B.PAY_DATE DATA_PAGAMENTO,
+      B.VOUCHER_DATE DATA_BAIXA,
+      B.VOUCHER_PERIOD PERIODO_BAIXA,
+      to_char(B.PAYMENT_ID) CODIGO_BAIXA,
+      NVL(C.CODE_a, A.CODE_a) ID_CODE_A,
+      NVL(C.CODE_B, A.CODE_B) ID_CODE_B,
+      NVL(C.CODE_C, A.CODE_C) ID_CODE_C,
+      NVL(C.CODE_D, A.CODE_D) ID_CODE_D,
+      NVL(C.CODE_E, A.CODE_E) ID_CODE_E,
+      NVL(C.CODE_F, A.CODE_F) ID_CODE_F,
+      NVL(C.CODE_G, A.CODE_G) ID_CODE_G,
+      NVL(C.CODE_H, A.CODE_H) ID_CODE_H,
+      NVL(C.CODE_I, A.CODE_I) ID_CODE_I,
+      NVL(C.CODE_J, A.CODE_J) ID_CODE_J,
+      x.WAY_ID METODO_PGTO,
+      coalesce(IFSLAF.PAYMENT_PER_CURRENCY_API.GET_SHORT_NAME(B.COMPANY, B.SERIES_ID, B.PAYMENT_ID, B.CURRENCY),N.short_name) ID_CONTA_MOV 
+FROM
+      IFSLAF.SUPP_INV_INTEREST_FINE_QRY A
+      LEFT JOIN IFSLAF.LEDGER_TRANSACTION_SU_QRY B ON (A.COMPANY = B.COMPANY AND A.IDENTITY = B.IDENTITY AND A.PARTY_TYPE_DB = B.PARTY_TYPE_DB AND A.LEDGER_ITEM_ID = B.LEDGER_ITEM_ID AND A.LEDGER_ITEM_SERIES_ID = B.LEDGER_ITEM_SERIES_ID AND A.LEDGER_ITEM_VERSION = B.LEDGER_ITEM_VERSION AND A.INSTALLMENT_ID = B.INSTALLMENT_ID AND B.PAYMENT_TYPE_CODE_DB NOT IN ('COMPSUPPROLLBACK', 'TAXWITHHOLD') AND B.ROLLEDBACK = 'FALSE')
+      LEFT JOIN  IFSLAF.PAYMENT_WAY_PER_IDENTITY x ON (x.COMPANY = A.COMPANY AND a.IDENTITY = x.IDENTITY AND x.DEFAULT_PAYMENT_WAY = 'TRUE' AND x.party_type_db = 'SUPPLIER')
+      
+      OUTER APPLY (SELECT N.SHORT_NAME
+                   FROM IFSLAF.CASH_ACCOUNT_CUSTOMER N
+                   WHERE N.COMPANY = A.COMPANY
+                   AND N.DEFAULT_FLAG = 'TRUE') N 
+                                
+      LEFT JOIN (
+                SELECT
+                       NFE.INVOICE_COMPANY  AS COMPANY,
+                       NFE.INVOICE_ID,
+                       NFE.AP_INVOICE_NO    AS INVOICE_NO,
+                       NFE.ORDER_NO,
+                       NFE.CODE_a,
+                       NFE.CODE_B,
+                       NFE.CODE_C,
+                       NFE.CODE_D,
+                       NFE.CODE_E,
+                       NFE.CODE_F,
+                       NFE.CODE_G,
+                       NFE.CODE_H,
+                       NFE.CODE_I,
+                       NFE.CODE_j,
+                       NFE.ID_NF,
+                       CAB.FISCAL_NOTE_NO   AS NUMERO_NF,
+                       CAB.EMISSION_DATE    AS DATA_EMISSAO_NF,
+                       CAB.DOCUMENT_NO      AS TIPO_DOC,
+                       CAB.NOTE_TOTAL_VALUE AS VALOR_NOTA,
+                       
+                       CASE
+                         WHEN CAB.MERCHANDISE_VALUE - NVL(IFSLAF.FISCAL_NOTE_API.GET_MERCHANDISE_VALUE(CAB.FISCAL_NOTE_ORIGIN_ID), 0) < 0
+                         THEN CAB.MERCHANDISE_VALUE
+                         ELSE CAB.MERCHANDISE_VALUE - NVL(IFSLAF.FISCAL_NOTE_API.GET_MERCHANDISE_VALUE(CAB.FISCAL_NOTE_ORIGIN_ID), 0) 
+                       END AS VALOR_MERCADORIA,
+         
+                       IFSLAF.MAN_SUPP_INVOICE_API.GET_GROSS_AMOUNT(NFE.INVOICE_COMPANY, NFE.INVOICE_ID) AS VALOR_TITULO,
+                       SUM(NVL(NULLIF(ITE.ITEM_TOTAL_VALUE, 0), ROUND(ITE.ITEM_QUANTITY * ITE.UNITARY_GROSS_PRICE - NVL(ITE.DISCOUNT_VALUE, 0), 2))) AS VALOR_ITEM,
+                       CASE WHEN (SUM(NVL(NULLIF(ITE.ITEM_TOTAL_VALUE, 0), ROUND(ITE.ITEM_QUANTITY * ITE.UNITARY_GROSS_PRICE - NVL(ITE.DISCOUNT_VALUE, 0), 2)) / CASE WHEN CAB.DOCUMENT_NO IN ('NFES', 'NFS', 'REC', 'RPA') THEN CAB.NOTE_TOTAL_VALUE ELSE NVL(NULLIF(CASE WHEN CAB.MERCHANDISE_VALUE - NVL(IFSLAF.FISCAL_NOTE_API.GET_MERCHANDISE_VALUE(CAB.FISCAL_NOTE_ORIGIN_ID), 0) < 0 THEN CAB.MERCHANDISE_VALUE ELSE CAB.MERCHANDISE_VALUE - NVL(IFSLAF.FISCAL_NOTE_API.GET_MERCHANDISE_VALUE(CAB.FISCAL_NOTE_ORIGIN_ID), 0) END, 0), NVL(NULLIF(ITE.ITEM_TOTAL_VALUE, 0), ROUND(ITE.ITEM_QUANTITY * ITE.UNITARY_GROSS_PRICE, 2))) END)) >1
+                            THEN 1
+                            ELSE (SUM(NVL(NULLIF(ITE.ITEM_TOTAL_VALUE, 0), ROUND(ITE.ITEM_QUANTITY * ITE.UNITARY_GROSS_PRICE - NVL(ITE.DISCOUNT_VALUE, 0), 2)) / CASE WHEN CAB.DOCUMENT_NO IN ('NFES', 'NFS', 'REC', 'RPA') THEN CAB.NOTE_TOTAL_VALUE ELSE NVL(NULLIF(CASE WHEN CAB.MERCHANDISE_VALUE - NVL(IFSLAF.FISCAL_NOTE_API.GET_MERCHANDISE_VALUE(CAB.FISCAL_NOTE_ORIGIN_ID), 0) < 0 THEN CAB.MERCHANDISE_VALUE ELSE CAB.MERCHANDISE_VALUE - NVL(IFSLAF.FISCAL_NOTE_API.GET_MERCHANDISE_VALUE(CAB.FISCAL_NOTE_ORIGIN_ID), 0) END, 0), NVL(NULLIF(ITE.ITEM_TOTAL_VALUE, 0), ROUND(ITE.ITEM_QUANTITY * ITE.UNITARY_GROSS_PRICE, 2))) END)) END AS PERCENTUAL
+                FROM (
+                     SELECT
+                           POI.INVOICE_COMPANY,
+                           POI.INVOICE_ID,
+                           POI.AP_INVOICE_NO,
+                           POI.ORDER_NO,
+                           POI.LINE_NO,
+                           POI.RELEASE_NO,
+                           POL.CODE_A,
+                           POL.CODE_B,
+                           POL.CODE_C,
+                           POL.CODE_D,
+                           POL.CODE_E,
+                           POL.CODE_F,
+                           POL.CODE_G,
+                           POL.CODE_H,
+                           POL.CODE_I,
+                           POL.CODE_J,
+                           IFSLAF.FISCAL_NOTE_API.GET_FISNOT_ID_BY_INVOIC_ID(POI.INVOICE_COMPANY, POI.INVOICE_ID) AS ID_NF
+                     FROM
+                           IFSLAF.PURCHASE_ORDER_INVOICE POI
+                           INNER JOIN IFSLAF.PURCHASE_ORDER_LINE_PART POL ON (POI.ORDER_NO = POL.ORDER_NO AND POI.LINE_NO = POL.LINE_NO AND POI.RELEASE_NO = POL.RELEASE_NO)
+                      ) NFE
+                      
+                    INNER JOIN IFSLAF.FN_CUST_PURC_ORDER_TAB AUX ON (NFE.ID_NF = AUX.FISCAL_NOTE_ID AND NFE.ORDER_NO = AUX.ORDER_NO AND NFE.LINE_NO = AUX.LINE_NO AND NFE.RELEASE_NO = AUX.REL_NO)
+                    INNER JOIN IFSLAF.FISCAL_NOTE_ITEM ITE ON (AUX.FISCAL_NOTE_ID = ITE.FISCAL_NOTE_ID AND AUX.ITEM_NUMBER = ITE.ITEM_NUMBER)
+                    INNER JOIN IFSLAF.FISCAL_NOTE CAB ON (AUX.FISCAL_NOTE_ID = CAB.FISCAL_NOTE_ID)
+                    
+                    GROUP BY
+                          NFE.INVOICE_COMPANY,
+                          NFE.INVOICE_ID,
+                          NFE.AP_INVOICE_NO,
+                          NFE.ORDER_NO,
+                          NFE.CODE_A,
+                          NFE.CODE_B,
+                          NFE.CODE_C,
+                          NFE.CODE_D,
+                          NFE.CODE_E,
+                          NFE.CODE_F,
+                          NFE.CODE_G,
+                          NFE.CODE_H,
+                          NFE.CODE_I,
+                          NFE.CODE_J,
+                          NFE.ID_NF,
+                          CAB.FISCAL_NOTE_NO,
+                          CAB.EMISSION_DATE,
+                          CAB.DOCUMENT_NO,
+                          CAB.NOTE_TOTAL_VALUE,
+                          CAB.MERCHANDISE_VALUE,
+                          CAB.FISCAL_NOTE_ORIGIN_ID
+                ) C ON (A.COMPANY = C.COMPANY AND A.INVOICE_ID = C.INVOICE_ID)
+                    
+      
+WHERE
+      (A.INV_AMOUNT <> 0)
+      AND (A.CLIENT_INV_STATE <> 'Cancelado')
+      AND A.LEDGER_ITEM_SERIES_ID <> 'FI'
+     
+
+UNION ALL
+
+
+SELECT
+      t.statement_no N_TITULO,
+      1 ID_PARCELA,
+      'Pgto Contab' STATUS_TITULO,
+      'Pago' STATUS_TITULO_AJUST,
+      y.MIXED_PAYMENT_ID ID_TITULO,
+      NULL ID_OC,
+      A.VOUCHER_NO N_LANCTO,
+      NULL SERIE,
+      a.entry_date DATA_TITULO,
+      a.entry_date DATA_VENCIMENTO_ORIGINAL,
+      A.entry_date DATA_VENCIMENTO,
+      A.entry_date   DATA_LANCTO,
+      A.COMPANY ID_EMPRESA,
+      NULL ID_FORNECEDOR,
+      y.TEXT DESC_FORNECEDOR,
+      NULL GRUPO_FORNECEDOR,
+      NULL CNPJ_CPF_PARCEIRO,
+      'Externo' TIPO_PARCEIRO,
+      1 PERCENTUAL,
+      a.amount  VALOR_PARCELA,
+      0 DESCONTO_USADO,
+      0 IMPOSTOS_RETIDOS,
+      a.amount VALOR_PAGO,
+      0 VALOR_JUROS,
+      0 VALOR_MULTA,
+      0 VALOR_EM_ABERTO,
+      'Tesouraria' TIPO_PAGAMENTO,
+      a.voucher_date DATA_PAGAMENTO,
+      a.voucher_date DATA_BAIXA,
+      to_char(a.accounting_period) PERIODO_BAIXA,
+      y.TRANSACTION_CODE_ID CODIGO_BAIXA,
+      A.account ID_CODE_A,
+      A.CODE_B ID_CODE_B,
+      A.CODE_C ID_CODE_C,
+      A.CODE_D ID_CODE_D,
+      A.CODE_E ID_CODE_E,
+      A.CODE_F ID_CODE_F,
+      A.CODE_G ID_CODE_G,
+      A.CODE_H ID_CODE_H,
+      A.CODE_I ID_CODE_I,
+      A.CODE_J ID_CODE_J,
+      y.WAY_ID METODO_PGTO,
+      y.short_name ID_CONTA_MOV 
+FROM
+      IFSLAF.MIXED_PAYMENT t  
+      JOIN IFSLAF.MIXED_PAYMENT_LUMP_SUM y ON (t.COMPANY = y.COMPANY AND t.mixed_payment_id = y.MIXED_PAYMENT_ID) 
+      JOIN IFSLAF.GEN_LED_VOUCHER_ROW_UNION_QRY A ON (T.voucher_type_ref = A.voucher_type AND T.voucher_no_ref = A.voucher_no AND T.voucher_date_ref = A.voucher_date AND Y.CODE_A = A.account)
+
+WHERE
+      T.objstate = 'Approved'
+      AND a.debet_amount > 0
+      ) CAP
+LEFT JOIN IFSLAF.PAYMENT_PER_CURRENCY_SU_QRY PPC ON TO_CHAR(PPC.payment_id) = TO_CHAR(CAP.CODIGO_BAIXA) AND TO_CHAR(PPC.company) = TO_CHAR(CAP.ID_EMPRESA)
