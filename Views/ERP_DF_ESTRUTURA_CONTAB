@@ -1,0 +1,74 @@
+WITH SUBTAB AS (
+     SELECT COMPANY                         AS EMPRESA,
+            STRUCTURE_ID,
+            NAME_VALUE AS CONTA_CONTABIL,
+            ITEM_ABOVE,
+            UPPER(TRANSLATE(DESCRIPTION, 'ÑÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕÄËÏÖÜÇñáéíóúàèìòùâêîôûãõäëïöüç', 'NAEIOUAEIOUAEIOUAOAEIOUCnaeiouaeiouaeiouaoaeiouc')) AS DESC_CONTA_CONTAB,
+            SYS_CONNECT_BY_PATH(UPPER(TRANSLATE(DESCRIPTION, 'ÑÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÃÕÄËÏÖÜÇñáéíóúàèìòùâêîôûãõäëïöüç', 'NAEIOUAEIOUAEIOUAOAEIOUCnaeiouaeiouaeiouaoaeiouc')), '|') AS NAME_PATH,
+            LEVEL_ID
+       FROM IFSLAF.ACCOUNTING_STRUCTURE_ITEM
+      WHERE STRUCTURE_ITEM_TYPE_DB <> '1' 
+            AND  STRUCTURE_ID not in ('SPED FISCAL', 'BALANCETE ANALÍTICO')
+      START WITH NAME_VALUE = '0'
+    CONNECT BY NOCYCLE PRIOR (COMPANY) = COMPANY
+           AND PRIOR (STRUCTURE_ID) = STRUCTURE_ID
+           AND PRIOR (NAME_VALUE) = ITEM_ABOVE
+       )
+
+SELECT SUBTAB.EMPRESA AS ID_EMPRESA,
+       SUBTAB.STRUCTURE_ID AS ID_ESTRUTURA,
+       SUBTAB.CONTA_CONTABIL AS ID_CODE_A_CONTA,
+       SUBTAB.DESC_CONTA_CONTAB DESC_CODE_A_CONTA,
+       SUBTAB.CONTA_CONTABIL ||' - '|| SUBTAB.DESC_CONTA_CONTAB CONTA_CONTABIL,
+       IFSLAF.ACCOUNT_GROUP_API.GET_DESCRIPTION(SUBTAB.EMPRESA, IFSLAF.ACCOUNT_API.GET_ACCNT_GROUP(SUBTAB.EMPRESA, SUBTAB.CONTA_CONTABIL)) AS GRUPO_CONTA_CONTAB,
+       -- Primeiro busca o ID na estrutura
+       CASE
+           WHEN INSTR(subtab.item_above, '.', 1, 3) > 0 THEN SUBSTR(subtab.item_above, INSTR(subtab.item_above, '.', 1, 3) + 1)
+           ELSE NULL
+       END
+       ||'-'||
+       -- Depois busca a descrição e concatena
+       CASE SUBTAB.LEVEL_ID
+            WHEN '5' THEN SUBSTR(SUBTAB.NAME_PATH, INSTR(SUBTAB.NAME_PATH, '|', 1, SUBTAB.LEVEL_ID - 0) + 1, INSTR(SUBTAB.NAME_PATH, '|', 1, SUBTAB.LEVEL_ID + 1) - INSTR(SUBTAB.NAME_PATH, '|', 1, SUBTAB.LEVEL_ID - 0) - 1)
+            ELSE NULL
+       END AS NIVEL_4,
+       -- Primeiro busca o ID na estrutura
+       CASE
+           WHEN INSTR(subtab.item_above, '.', 1, 2) > 0 AND INSTR(subtab.item_above, '.', 1, 3) > 0 THEN SUBSTR(subtab.item_above, INSTR(subtab.item_above, '.', 1, 2) + 1, INSTR(subtab.item_above, '.', 1, 3) - INSTR(subtab.item_above, '.', 1, 2) - 1)
+           WHEN INSTR(subtab.item_above, '.', 1, 2) > 0 THEN SUBSTR(subtab.item_above, INSTR(subtab.item_above, '.', 1, 2) + 1)
+           ELSE NULL
+       END
+       ||'-'||
+       -- Depois busca a descrição e concatena
+       CASE SUBTAB.LEVEL_ID
+            WHEN '5' THEN SUBSTR(SUBTAB.NAME_PATH, INSTR(SUBTAB.NAME_PATH, '|', 1, SUBTAB.LEVEL_ID - 1) + 1, INSTR(SUBTAB.NAME_PATH, '|', 1, SUBTAB.LEVEL_ID - 0) - INSTR(SUBTAB.NAME_PATH, '|', 1, SUBTAB.LEVEL_ID - 1) - 1)
+            WHEN '4' THEN SUBSTR(SUBTAB.NAME_PATH, INSTR(SUBTAB.NAME_PATH, '|', 1, SUBTAB.LEVEL_ID) + 1, INSTR(SUBTAB.NAME_PATH, '|', 1, SUBTAB.LEVEL_ID + 1) - INSTR(SUBTAB.NAME_PATH, '|', 1, SUBTAB.LEVEL_ID) - 1)
+            ELSE NULL
+       END AS NIVEL_3,
+       -- Primeiro busca o ID na estrutura
+       CASE
+           WHEN INSTR(subtab.item_above, '.', 1, 1) > 0 AND INSTR(subtab.item_above, '.', 1, 2) > 0 THEN SUBSTR(subtab.item_above, INSTR(subtab.item_above, '.', 1, 1) + 1, INSTR(subtab.item_above, '.', 1, 2) - INSTR(subtab.item_above, '.', 1, 1) - 1)
+           WHEN INSTR(subtab.item_above, '.', 1, 1) > 0 THEN SUBSTR(subtab.item_above, INSTR(subtab.item_above, '.', 1, 1) + 1)
+           ELSE NULL
+       END       
+       ||'-'||
+       -- Depois busca a descrição e concatena
+       CASE SUBTAB.LEVEL_ID
+            WHEN '5' THEN SUBSTR(SUBTAB.NAME_PATH, INSTR(SUBTAB.NAME_PATH, '|', 1, SUBTAB.LEVEL_ID - 2) + 1, INSTR(SUBTAB.NAME_PATH, '|', 1, SUBTAB.LEVEL_ID - 1) - INSTR(SUBTAB.NAME_PATH, '|', 1, SUBTAB.LEVEL_ID - 2) - 1)
+            WHEN '4' THEN SUBSTR(SUBTAB.NAME_PATH, INSTR(SUBTAB.NAME_PATH, '|', 1, SUBTAB.LEVEL_ID - 1) + 1, INSTR(SUBTAB.NAME_PATH, '|', 1, SUBTAB.LEVEL_ID) - INSTR(SUBTAB.NAME_PATH, '|', 1, SUBTAB.LEVEL_ID - 1) - 1)
+            ELSE SUBSTR(SUBTAB.NAME_PATH, INSTR(SUBTAB.NAME_PATH, '|', 1, SUBTAB.LEVEL_ID) + 1, INSTR(SUBTAB.NAME_PATH, '|', 1, SUBTAB.LEVEL_ID + 1) - INSTR(SUBTAB.NAME_PATH, '|', 1, SUBTAB.LEVEL_ID) - 1)
+       END AS NIVEL_2,
+       -- Primeiro busca o ID na estrutura
+       CASE
+           WHEN INSTR(subtab.item_above, '.', 1, 1) > 0 THEN SUBSTR(subtab.item_above, 1, INSTR(subtab.item_above, '.', 1, 1) - 1)
+           ELSE subtab.item_above
+       END ||'-'||
+       -- Depois busca a descrição e concatena
+       CASE SUBTAB.LEVEL_ID
+            WHEN '5' THEN SUBSTR(SUBTAB.NAME_PATH, INSTR(SUBTAB.NAME_PATH, '|', 1, SUBTAB.LEVEL_ID - 3) + 1, INSTR(SUBTAB.NAME_PATH, '|', 1, SUBTAB.LEVEL_ID - 2) - INSTR(SUBTAB.NAME_PATH, '|', 1, SUBTAB.LEVEL_ID - 3) - 1)
+            WHEN '4' THEN SUBSTR(SUBTAB.NAME_PATH, INSTR(SUBTAB.NAME_PATH, '|', 1, SUBTAB.LEVEL_ID - 2) + 1, INSTR(SUBTAB.NAME_PATH, '|', 1, SUBTAB.LEVEL_ID - 1) - INSTR(SUBTAB.NAME_PATH, '|', 1, SUBTAB.LEVEL_ID - 2) - 1)
+            ELSE SUBSTR(SUBTAB.NAME_PATH, INSTR(SUBTAB.NAME_PATH, '|', 1, SUBTAB.LEVEL_ID - 1) + 1, INSTR(SUBTAB.NAME_PATH, '|', 1, SUBTAB.LEVEL_ID) - INSTR(SUBTAB.NAME_PATH, '|', 1, SUBTAB.LEVEL_ID - 1) - 1)
+       END AS NIVEL_1,
+       subtab.item_above ORDEM
+    
+       FROM SUBTAB
