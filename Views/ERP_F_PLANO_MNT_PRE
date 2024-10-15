@@ -1,0 +1,156 @@
+SELECT a.MCH_CODE                                                                                                          SERIAL,
+       A.PM_NO                                                                                                             N_ACAO_MP,
+       IFSLAF.PM_ACTION_API.Get_Action_Descr(pm_no_ => A.PM_NO ,pm_revision_ => A.PM_REVISION)                             DESCRICAO_ACAO,
+       a.PLANNED_DATE                                                                                                      DATA_PREVISTA,
+       IFSLAF.PERSON_INFO_API.Get_Name(A.SIGNATURE)                                                                        DESC_PLANEJADOR,
+       ifslaf.EQUIPMENT_SERIAL_API.Get_Part_No(contract_ => a.mch_code_contract , mch_code_ => a.mch_code)                 ID_MATERIAL,
+       IFSLAF.PART_CATALOG_API.Get_Description(part_no_ => ifslaf.EQUIPMENT_SERIAL_API.Get_Part_No(contract_ => a.mch_code_contract , mch_code_ => a.mch_code) ,language_code_ => 'bp') DESC_MATERIAL,
+       IFSLAF.FA_OBJECT_API.Get_Code_H(ifslaf.company_site_api.Get_Company(contract_ => a.mch_code_contract), A.mch_code)  ID_CODE_H_APR_CUSTO,
+       A.MCH_CODE_CONTRACT                                                                                                 ID_SITE,
+       A.WO_NO                                                                                                             N_OS,
+       a.CF$_STATUS_OS                                                                                                     STATUS_OS,
+       (select ifslaf.person_info_api.Get_Name(b.reported_by) from ifslaf.work_order b where b.wo_no = a.WO_NO)            DESC_CRIADOR_OS,
+       to_date(A.GENERATION_DATE)                                                                                          DATA_CRIACAO_OS,
+       to_date(a.COMPLETION_DATE)                                                                                          DATA_TERMINO_REAL_OS,
+       to_number((SELECT D.MEASURED_VALUE
+                FROM IFSLAF.EQUIPMENT_OBJECT_MEAS D
+               WHERE D.PARAMETER_CODE = 'HR'
+                 AND D.MEASUREMENT_TYPE_DB = 'RecordedReading'
+                 AND D.MCH_CODE = A.MCH_CODE
+                 AND TRUNC(D.REG_DATE) = trunc(a.COMPLETION_DATE)
+            ORDER BY D.MEASURED_VALUE DESC
+               FETCH FIRST ROW ONLY))                                                                                      HORIMETRO_REALIZADO,
+
+        COALESCE((D1.HORIMETRO_ULT_PREV + 500),500)                                                                              HORIMETRO_PREVISTO,
+        to_number(COALESCE((D1.HORIMETRO_ULT_PREV + 500),500)  - (SELECT D.MEASURED_VALUE
+                FROM IFSLAF.EQUIPMENT_OBJECT_MEAS D
+               WHERE D.PARAMETER_CODE = 'HR'
+                 AND D.MEASUREMENT_TYPE_DB = 'RecordedReading'
+                 AND D.MCH_CODE = A.MCH_CODE
+                 AND TRUNC(D.REG_DATE) = trunc(a.COMPLETION_DATE)
+            ORDER BY D.MEASURED_VALUE DESC
+               FETCH FIRST ROW ONLY))                                                                                      SALDO_HORIMETRO_REAL,
+
+       a.PLANNED_PERSONNEL_COST                                                                                            CUSTO_PESSOAL_PREVISTO,
+       a.PLANNED_MATERIAL_COST                                                                                             CUSTO_MATERIAL_PREVISTO,
+       a.PLANNED_TOOL_COST                                                                                                 CUSTO_FERRAMENTA_EQUIPAMENTO_PREVISTO,
+       a.PLANNED_EXTERNAL_COST                                                                                             CUSTO_EXTERNO_PREVISTO,
+       ifslaf.Jt_Task_Cost_Line_Util_API.Get_Sum_Actual_Cost(a.WO_NO, 'P')                                                 CUSTO_PESSOAL_REAL,
+       ifslaf.Jt_Task_Cost_Line_Util_API.Get_Sum_Actual_Cost(a.WO_NO, 'F')                                                 CUSTO_PRECO_FIXO_REAL,
+       Ifslaf.Jt_Task_Cost_Line_Util_API.Get_Sum_Actual_Cost(a.WO_NO, 'X')                                                 CUSTO_DESPESAS_REAL,
+       ifslaf.Jt_Task_Cost_Line_Util_API.Get_Sum_Actual_Cost(a.WO_NO, 'M')                                                 CUSTO_MATERIAL_REAL,
+       ifslaf.Jt_Task_Cost_Line_Util_API.Get_Sum_Actual_Cost(a.WO_NO, 'T')                                                 CUSTO_FERRAMENTA_EQUIPAMENTO_REAL,
+       ifslaf.Jt_Task_Cost_Line_Util_API.Get_Sum_Actual_Cost(a.WO_NO, 'E')                                                 CUSTO_EXTERNO_REAL
+
+FROM IFSLAF.PM_CALENDAR_PLAN_CFV A LEFT join
+(select max.mch_code, max(max.pm_no) as PM_NO, max.planned_date from IFSLAF.PM_CALENDAR_PLAN MAX
+WHERE IFSLAF.Pm_Action_API.Get_Pm_State(max.PM_NO, max.PM_REVISION) = 'Active'  and max.PM_GENERATEABLE = 'Sim'
+group by max.mch_code, max.planned_date)temp
+on (a.MCH_CODE = temp.mch_code and a.PM_NO = temp.pm_no and to_date(a.PLANNED_DATE) = to_date(temp.planned_date))
+
+join
+(select max2.mch_code, max((SELECT X.CF$_SEQUENCY FROM IFSLAF.MAINTENANCE_ACTION_CFV X WHERE X.ACTION_CODE_ID = max2.action_code_id)) as PM_NO, max2.completion_date
+from IFSLAF.PM_CALENDAR_PLAN MAX2
+WHERE IFSLAF.Pm_Action_API.Get_Pm_State(max2.PM_NO, max2.PM_REVISION) = 'Active'  and max2.PM_GENERATEABLE = 'Sim' group by max2.mch_code, max2.completion_date)temp2
+on (a.MCH_CODE = temp2.mch_code AND (SELECT X.CF$_SEQUENCY FROM IFSLAF.MAINTENANCE_ACTION_CFV X WHERE X.ACTION_CODE_ID = A.action_code_id) = temp2.pm_no and A.COMPLETION_DATE = temp2.completion_date)
+
+OUTER APPLY ( SELECT D.MEASURED_VALUE AS HORIMETRO_ULT_PREV
+                FROM IFSLAF.EQUIPMENT_OBJECT_MEAS D
+               WHERE D.PARAMETER_CODE = 'HR'
+                 AND D.MEASUREMENT_TYPE_DB = 'RecordedReading'
+                 AND D.MCH_CODE = a.MCH_CODE
+                 AND TRUNC(D.REG_DATE) = (SELECT TRUNC(MAX(B.REAL_F_DATE))
+                                            FROM IFSLAF.WORK_ORDER B
+                                           WHERE B.OBJSTATE = 'FINISHED'
+                                             AND B.WORK_TYPE_ID = 'PRE'
+                                             AND B.MCH_CODE = D.MCH_CODE
+                                             AND b.real_f_date < a.COMPLETION_DATE )
+            ORDER BY D.MEASURED_VALUE DESC
+               FETCH FIRST ROW ONLY) D1
+
+
+
+
+WHERE IFSLAF.Pm_Action_API.Get_Pm_State(A.PM_NO, A.PM_REVISION) = 'Active' and a.PM_GENERATEABLE = 'Sim'
+--AND A.WO_NO = '355088'
+--AND a.MCH_CODE = 'L140'
+
+UNION ALL
+
+SELECT  a.MCH_CODE                                                                                                          SERIAL,
+       A.PM_NO                                                                                                             N_ACAO_MP,
+       IFSLAF.PM_ACTION_API.Get_Action_Descr(pm_no_ => A.PM_NO ,pm_revision_ => A.PM_REVISION)                             DESCRICAO_ACAO,
+       a.PLANNED_DATE                                                                                                      DATA_PREVISTA,
+       IFSLAF.PERSON_INFO_API.Get_Name(A.SIGNATURE)                                                                        DESC_PLANEJADOR,
+       ifslaf.EQUIPMENT_SERIAL_API.Get_Part_No(contract_ => a.mch_code_contract , mch_code_ => a.mch_code)                 ID_MATERIAL,
+       IFSLAF.PART_CATALOG_API.Get_Description(part_no_ => ifslaf.EQUIPMENT_SERIAL_API.Get_Part_No(contract_ => a.mch_code_contract , mch_code_ => a.mch_code) ,language_code_ => 'bp') DESC_MATERIAL,
+       IFSLAF.FA_OBJECT_API.Get_Code_H(ifslaf.company_site_api.Get_Company(contract_ => a.mch_code_contract), A.mch_code)  ID_CODE_H_APR_CUSTO,
+       A.MCH_CODE_CONTRACT                                                                                                 ID_SITE,
+       A.WO_NO                                                                                                             N_OS,
+       a.CF$_STATUS_OS                                                                                                     STATUS_OS,
+       (select ifslaf.person_info_api.Get_Name(b.reported_by) from ifslaf.work_order b where b.wo_no = a.WO_NO)            DESC_CRIADOR_OS,
+       to_date(A.GENERATION_DATE)                                                                                          DATA_CRIACAO_OS,
+       to_date(a.COMPLETION_DATE)                                                                                          DATA_TERMINO_REAL_OS,
+       to_number((SELECT D.MEASURED_VALUE
+                FROM IFSLAF.EQUIPMENT_OBJECT_MEAS D
+               WHERE D.PARAMETER_CODE = 'HR'
+                 AND D.MEASUREMENT_TYPE_DB = 'RecordedReading'
+                 AND D.MCH_CODE = A.MCH_CODE
+                 AND TRUNC(D.REG_DATE) = trunc(a.COMPLETION_DATE)
+            ORDER BY D.MEASURED_VALUE DESC
+               FETCH FIRST ROW ONLY))                                                                                      HORIMETRO_REALIZADO,
+
+               (D1.HORIMETRO_ULT_PREV + 500)                                                                                           HORIMETRO_PREVISTO,
+        to_number((D1.HORIMETRO_ULT_PREV + 500)  - (SELECT D.MEASURED_VALUE
+                FROM IFSLAF.EQUIPMENT_OBJECT_MEAS D
+               WHERE D.PARAMETER_CODE = 'HR'
+                 AND D.MEASUREMENT_TYPE_DB = 'RecordedReading'
+                 AND D.MCH_CODE = A.MCH_CODE
+                 AND TRUNC(D.REG_DATE) = trunc(a.COMPLETION_DATE)
+            ORDER BY D.MEASURED_VALUE DESC
+               FETCH FIRST ROW ONLY))                                                                                      SALDO_HORIMETRO_REAL,
+
+       a.PLANNED_PERSONNEL_COST                                                                                            CUSTO_PESSOAL_PREVISTO,
+       a.PLANNED_MATERIAL_COST                                                                                             CUSTO_MATERIAL_PREVISTO,
+       a.PLANNED_TOOL_COST                                                                                                 CUSTO_FERRAMENTA_EQUIPAMENTO_PREVISTO,
+       a.PLANNED_EXTERNAL_COST                                                                                             CUSTO_EXTERNO_PREVISTO,
+       ifslaf.Jt_Task_Cost_Line_Util_API.Get_Sum_Actual_Cost(a.WO_NO, 'P')                                                 CUSTO_PESSOAL_REAL,
+       ifslaf.Jt_Task_Cost_Line_Util_API.Get_Sum_Actual_Cost(a.WO_NO, 'F')                                                 CUSTO_PRECO_FIXO_REAL,
+       Ifslaf.Jt_Task_Cost_Line_Util_API.Get_Sum_Actual_Cost(a.WO_NO, 'X')                                                 CUSTO_DESPESAS_REAL,
+       ifslaf.Jt_Task_Cost_Line_Util_API.Get_Sum_Actual_Cost(a.WO_NO, 'M')                                                 CUSTO_MATERIAL_REAL,
+       ifslaf.Jt_Task_Cost_Line_Util_API.Get_Sum_Actual_Cost(a.WO_NO, 'T')                                                 CUSTO_FERRAMENTA_EQUIPAMENTO_REAL,
+       ifslaf.Jt_Task_Cost_Line_Util_API.Get_Sum_Actual_Cost(a.WO_NO, 'E')                                                 CUSTO_EXTERNO_REAL
+
+FROM IFSLAF.PM_CALENDAR_PLAN_CFV A LEFT join
+(select max.mch_code, max(max.pm_no) as PM_NO, max.planned_date from IFSLAF.PM_CALENDAR_PLAN MAX
+WHERE IFSLAF.Pm_Action_API.Get_Pm_State(max.PM_NO, max.PM_REVISION) <> 'Active'  and max.PM_GENERATEABLE = 'Sim'
+group by max.mch_code, max.planned_date)temp
+on (a.MCH_CODE = temp.mch_code and a.PM_NO = temp.pm_no and to_date(a.PLANNED_DATE) = to_date(temp.planned_date))
+
+join
+(select max2.mch_code, max((SELECT X.CF$_SEQUENCY FROM IFSLAF.MAINTENANCE_ACTION_CFV X WHERE X.ACTION_CODE_ID = max2.action_code_id)) as PM_NO, max2.completion_date
+from IFSLAF.PM_CALENDAR_PLAN MAX2
+WHERE IFSLAF.Pm_Action_API.Get_Pm_State(max2.PM_NO, max2.PM_REVISION) = 'Active'  and max2.PM_GENERATEABLE = 'Sim' group by max2.mch_code, max2.completion_date)temp2
+on (a.MCH_CODE = temp2.mch_code AND (SELECT X.CF$_SEQUENCY FROM IFSLAF.MAINTENANCE_ACTION_CFV X WHERE X.ACTION_CODE_ID = A.action_code_id) = temp2.pm_no and A.COMPLETION_DATE = temp2.completion_date)
+
+JOIN ( SELECT j.WO_NO, j.pm_no, MAX(j.PM_REVISION) PM_REVISION, j.mch_code 
+FROM IFSLAF.PM_CALENDAR_PLAN j WHERE IFSLAF.Pm_Action_API.Get_Pm_State(j.PM_NO, j.PM_REVISION) <> 'Active' and j.PM_GENERATEABLE = 'Sim' GROUP BY j.WO_NO, j.pm_no, j.mch_code) j
+ON j.wo_no = a.WO_NO AND  j.pm_no =  a.pm_no AND  j.PM_REVISION = a.PM_REVISION AND  j.mch_code = a.mch_code
+
+OUTER APPLY ( SELECT D.MEASURED_VALUE AS HORIMETRO_ULT_PREV
+                FROM IFSLAF.EQUIPMENT_OBJECT_MEAS D
+               WHERE D.PARAMETER_CODE = 'HR'
+                 AND D.MEASUREMENT_TYPE_DB = 'RecordedReading'
+                 AND D.MCH_CODE = a.MCH_CODE
+                 AND TRUNC(D.REG_DATE) = (SELECT TRUNC(MAX(B.REAL_F_DATE))
+                                            FROM IFSLAF.WORK_ORDER B
+                                           WHERE B.OBJSTATE = 'FINISHED'
+                                             AND B.WORK_TYPE_ID = 'PRE'
+                                             AND B.MCH_CODE = D.MCH_CODE
+                                             AND b.real_f_date < a.COMPLETION_DATE )
+            ORDER BY D.MEASURED_VALUE DESC
+               FETCH FIRST ROW ONLY) D1
+
+WHERE IFSLAF.Pm_Action_API.Get_Pm_State(A.PM_NO, A.PM_REVISION) <> 'Active' and a.PM_GENERATEABLE = 'Sim'
+AND NOT EXISTS (SELECT 1 FROM IFSLAF.PM_CALENDAR_PLAN_CFV Z WHERE Z.WO_NO = A.WO_NO AND IFSLAF.Pm_Action_API.Get_Pm_State(Z.PM_NO, Z.PM_REVISION) = 'Active' and Z.PM_GENERATEABLE = 'Sim')
+--AND A.WO_NO = '355088'
