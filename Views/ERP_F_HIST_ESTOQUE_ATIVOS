@@ -1,0 +1,17 @@
+SELECT A.CF$_DATA_REGISTRO                    AS DATA_HISTORICO,
+       A.CF$_MCH_CODE                         AS SERIAL,
+       A.CF$_PART_NO                          AS ID_MATERIAL,
+       A.CF$_DESC_MATERIAL                    AS DESC_MATERIAL,
+       A.CF$_CONTRACT                         AS ID_SITE,
+       A.CF$_PART_NO || '-' || A.CF$_CONTRACT AS CHAVE_MATERIAL_SITE,
+       NVL(A.CF$_USO_INTERNO, 'NÃO')          AS USO_INTERNO,
+       NVL(A.CF$_EXCLUSIVO_VENDA, 'NÃO')      AS EXCLUSIVO_VENDA,
+       A.CF$_PRECO_VENDA                      AS PRECO_VENDA,
+       A.CF$_DATA_EXCLUSIVO_VENDA             AS DATA_EXCLUSIVO_VENDA,
+       A.CF$_LOCAL_EQUIPAMENTO                AS LOCAL_EQUIPAMENTO,
+       A.CF$_STATUS_EQUIPAMENTO               AS STATUS_EQUIPAMENTO,
+       A.CF$_DATA_AQUISICAO                   AS DATA_AQUISICAO,
+       A.CF$_VALOR_AQUISICAO                  AS VALOR_AQUISICAO,
+       A.CF$_ANO_FABRICACAO                   AS ANO_FABRICACAO,
+       A.CF$_IDADE_FROTA                      AS FAIXA_IDADE
+  FROM IFSLAF.LAF_HISTORICO_FICHA_CLV A
