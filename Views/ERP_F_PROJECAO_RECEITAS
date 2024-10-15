@@ -1,0 +1,38 @@
+select  b.N_CONTRATO,
+        b.N_COTACAO,
+        b.ID_OV,
+        B.ID_CLIENTE,
+        B.DESC_CLIENTE,
+        B.TIPO_PARCEIRO,
+        B.id_EMPRESA,
+        B.id_SITE ID_CODE_C_SITE,
+        B.ID_CODE_H_APR_CUSTO,
+        E.WAY_ID FORMA_PAGTO,
+        B.DATA_PROX_FAT DATA_FATURAMENTO,
+        coalesce(IFSLAF.C_RECURRENT_AGREEMENT_API.Get_Pay_Term_Id(B.ID_OPORTUNIDADE,b.N_CONTRATO),ifslaf.ORDER_QUOTATION_API.Get_Pay_Term_Id(b.N_COTACAO),ifslaf.customer_order_api.Get_Pay_Term_Id(b.ID_OV)) ID_COND_PAGTO,
+        coalesce((SELECT J.short_name FROM ifslaf.CASH_ACCOUNT J WHERE J.short_name = IFSLAF.PAYMENT_WAY_CFP.Get_Cf$_Cash_Account_Pay(IFSLAF.PAYMENT_WAY_API.Get_Objkey(b.ID_EMPRESA,E.way_id))) ,(select n.short_name
+          from ifslaf.CASH_ACCOUNT_CUSTOMER n
+         where n.company = b.ID_EMPRESA
+           and n.default_flag = 'TRUE'))                                              ID_CONTA_MOV,
+        
+        C.installment_number AS ID_PARCELA,
+        B.DATA_PROX_FAT + C.DAYS_TO_DUE_DATE AS DATA_VENCIMENTO,
+        B.VALOR_PROJETADO * (C.NET_AMOUNT_PERCENTAGE/100)  AS VALOR_PARCELA_BRUTO,
+        CASE WHEN B.PARAMETRO_PROJECAO = 'SERVICO' then (B.VALOR_PROJETADO * (C.NET_AMOUNT_PERCENTAGE/100)) * 0.84 else B.VALOR_PROJETADO * (C.NET_AMOUNT_PERCENTAGE/100) end AS VALOR_PARCELA_LIQUIDO,
+        COALESCE((select c.code_i from ifslaf.customer_order_join c where c.code_i is not null and c.order_no = b.ID_OV order by c.code_i FETCH FIRST ROW ONLY),
+        IFSLAF.ORDER_QUOTATION_CFP.Get_Cf$_Quotation_Modality(objkey_ => IFSLAF.ORDER_QUOTATION_API.Get_Objkey(quotation_no_ => B.N_COTACAO)),
+        CASE IFSLAF.C_RECURRENT_AGREEMENT_API.Get_Agreement_Modality_db(opportunity_no_ => B.ID_OPORTUNIDADE,agreement_id_ => B.N_CONTRATO)
+          WHEN 'MODULES' THEN '07'
+          WHEN 'MACHINES' THEN '03'
+          WHEN 'SERVICES' THEN '03'
+          WHEN NULL THEN NULL
+        END) AS ID_CODE_I_NEGOCIO,
+        case b.PARAMETRO_PROJECAO 
+          when 'LOCACAO' then '2001' --locacao
+          when 'VENDA' then '2002' --venda
+          when 'SERVICO' then '2005'  end ID_CODE_D_NATUREZA,
+        ifslaf.c_recurrent_agreement_cfp.Get_Cf$_Code_F(ifslaf.c_recurrent_agreement_api.Get_Objkey(b.ID_OPORTUNIDADE,b.N_CONTRATO)) ID_CODE_F_PROJETO
+                       
+from ifsinfo.ERP_F_PROJECAO_FAT B
+LEFT JOIN IFSLAF.PAYMENT_TERM_DETAILS c ON b.id_EMPRESA = c.company AND c.pay_term_id = coalesce(IFSLAF.C_RECURRENT_AGREEMENT_API.Get_Pay_Term_Id(B.ID_OPORTUNIDADE,b.N_CONTRATO),ifslaf.ORDER_QUOTATION_API.Get_Pay_Term_Id(b.N_COTACAO),ifslaf.customer_order_api.Get_Pay_Term_Id(b.ID_OV))
+LEFT JOIN IFSLAF.PAYMENT_WAY_PER_IDENTITY E ON E.company = B.ID_EMPRESA AND E.identity = B.ID_CLIENTE AND E.default_payment_way = 'TRUE' AND E.party_type_db = 'CUSTOMER'
