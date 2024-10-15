@@ -1,0 +1,114 @@
+WITH SUBTAB0 AS (
+SELECT 
+    WO_NO,
+    MIN(ACTUAL_START) AS DATA_INICIO_REAL,
+    MAX(ACTUAL_FINISH) AS DATA_FINAL_REAL
+FROM ifslaf.JT_TASK_UIV
+WHERE STATE = 'Concluído'
+GROUP BY WO_NO
+)
+, SUBTB1 AS
+ (SELECT SUBTB2.CONTRACT ,
+         SUBTB2.MCH_CODE,
+         SUBTB2.ANOMES,
+         SUBTB2.RODAGEM,
+         SUBTB2.QTDE_OS,
+         SUBTB2.TEMPO_EM_MANUTENCAO,
+         ROW_NUMBER() OVER(PARTITION BY SUBTB2.CONTRACT, SUBTB2.MCH_CODE, SUBTB2.SUMX ORDER BY SUBTB2.ANOMES) - 1 AS LINHAS
+    FROM (SELECT SUBTB3.CONTRACT,
+                 SUBTB3.MCH_CODE,
+                 SUBTB3.ANOMES,
+                 SUBTB3.RODAGEM,
+                 SUBTB3.QTDE_OS,
+                 SUBTB3.TEMPO_EM_MANUTENCAO,
+                 SUM(SUBTB3.LINHAS_OS) OVER(PARTITION BY SUBTB3.CONTRACT, SUBTB3.MCH_CODE ORDER BY SUBTB3.ANOMES) AS SUMX
+            FROM (SELECT SUBTB4.CONTRACT,
+                         SUBTB4.MCH_CODE,
+                         SUBTB4.ANOMES,
+                         SUBTB4.RODAGEM,
+                         SUBTB4.QTDE_OS,
+                         SUBTB4.TEMPO_EM_MANUTENCAO,
+                         CASE WHEN LAG(SUBTB4.QTDE_OS) OVER(PARTITION BY SUBTB4.CONTRACT, SUBTB4.MCH_CODE ORDER BY SUBTB4.ANOMES) = 0 THEN 0 ELSE 1 END AS LINHAS_OS
+                    FROM (SELECT SUBTB5.CONTRACT,
+                                 SUBTB5.MCH_CODE,
+                                 SUBTB5.ANOMES,
+                                 SUM(SUBTB5.RODAGEM) AS RODAGEM,
+                                 SUM(SUBTB5.QTDE_OS) AS QTDE_OS,
+                                 SUM(SUBTB5.TEMPO) AS TEMPO_EM_MANUTENCAO
+                            FROM (SELECT hist.mch_code_contract AS CONTRACT,
+                                         hist.mch_code AS MCH_CODE,
+                                         TO_CHAR(AUX.DATA_FINAL_REAL, 'YYYYMM') AS ANOMES,
+                                         0 AS RODAGEM,
+                                         COUNT(DISTINCT hist.WO_NO) AS QTDE_OS,
+                                         SUM((AUX.DATA_FINAL_REAL - AUX.DATA_INICIO_REAL) * 24) AS TEMPO
+                                    FROM IFSLAF.HISTORICAL_SEPARATE_UIV hist
+                                    LEFT JOIN SUBTAB0 AUX
+                                        ON hist.WO_NO = AUX.WO_NO 
+                                   WHERE hist.work_type_id = 'COR'
+                                     AND hist.objstate = 'FINISHED'
+                                     AND (hist.OP_STATUS_ID = 'FO' OR hist.OP_STATUS_ID IS NULL)
+                                     AND AUX.DATA_INICIO_REAL IS NOT NULL
+                                     AND AUX.DATA_FINAL_REAL IS NOT NULL    
+                              
+                                   GROUP BY hist.mch_code_contract,
+                                            hist.mch_code,
+                                            TO_CHAR(AUX.DATA_FINAL_REAL, 'YYYYMM'), 0
+
+                                  UNION ALL
+
+                                  SELECT C.CONTRACT,
+                                         C.MCH_CODE,
+                                         TO_CHAR(B.DATA_FIN, 'YYYYMM') AS ANOMES,
+                                         C.MEASURED_VALUE - NVL(IFSLAF.LAF_EQUIPMENT_UTILS_API.LAF_GET_PREV_RECORDED_VALUE_BY_DATE(B.DATA_INI, C.CONTRACT, C.MCH_CODE, C.TEST_POINT_ID, C.PARAMETER_CODE), C.MEASURED_VALUE) AS RODAGEM,
+                                         0 AS QTDE_OS,
+                                         0 AS TEMPO
+                                    FROM (SELECT A.VALUES_SEQ,
+                                                 (SELECT MIN(MED.REG_DATE)
+                                                    FROM IFSLAF.EQUIPMENT_OBJECT_MEAS_TAB MED
+                                                   WHERE MED.CONTRACT = A.CONTRACT
+                                                     AND MED.MCH_CODE = A.MCH_CODE
+                                                     AND MED.MEASUREMENT_TYPE = A.MEASUREMENT_TYPE
+                                                     AND MED.PARAMETER_CODE = A.PARAMETER_CODE
+                                                     AND MED.TEST_POINT_ID = A.TEST_POINT_ID
+                                                     AND TO_CHAR(MED.REG_DATE, 'YYYYMM') = TO_CHAR(A.REG_DATE, 'YYYYMM')) AS DATA_INI,
+                                                 A.REG_DATE AS DATA_FIN,
+                                                 ROW_NUMBER() OVER(PARTITION BY A.CONTRACT, A.MCH_CODE, TO_CHAR(A.REG_DATE, 'YYYYMM') ORDER BY A.REG_DATE DESC) AS RANK
+                                            FROM IFSLAF.EQUIPMENT_OBJECT_MEAS_TAB A
+                                           WHERE A.PARAMETER_CODE = 'HR'
+                                             AND A.TEST_POINT_ID = '*'
+                                             AND A.MEASUREMENT_TYPE = 'RecordedReading'
+                                           ORDER BY A.REG_DATE) B
+                                   INNER JOIN IFSLAF.EQUIPMENT_OBJECT_MEAS_TAB C ON (B.VALUES_SEQ = C.VALUES_SEQ AND B.RANK = 1)) SUBTB5
+                           GROUP BY SUBTB5.CONTRACT,
+                                    SUBTB5.MCH_CODE,
+                                    SUBTB5.ANOMES) SUBTB4) SUBTB3) SUBTB2),
+
+SUBTB2 AS
+ (SELECT SUBTB1.CONTRACT,
+         SUBTB1.MCH_CODE,
+         IFSLAF.EQUIPMENT_OBJECT_API.GET_MCH_NAME(SUBTB1.CONTRACT, SUBTB1.MCH_CODE) AS MCH_NAME,
+         IFSLAF.EQUIPMENT_SERIAL_API.GET_PART_NO(SUBTB1.CONTRACT, SUBTB1.MCH_CODE)  AS ID_MATERIAL,
+         IFSLAF.FA_OBJECT_API.GET_CODE_H(IFSLAF.COMPANY_SITE_API.GET_COMPANY(SUBTB1.CONTRACT), SUBTB1.MCH_CODE) AS APR_CUSTO,
+         SUBTB1.ANOMES,
+         TO_DATE(CONCAT(SUBTB1.ANOMES, '01'), 'YYYYMMDD') AS DATA_BASE,
+         SUBTB1.RODAGEM,
+         SUM(SUBTB1.RODAGEM) OVER(ORDER BY SUBTB1.CONTRACT, SUBTB1.MCH_CODE, SUBTB1.ANOMES ROWS BETWEEN SUBTB1.LINHAS PRECEDING AND CURRENT ROW) AS RODAGEM_SEM_QUEBRA,
+         SUBTB1.QTDE_OS,
+         SUBTB1.TEMPO_EM_MANUTENCAO,
+         SUBTB1.LINHAS
+    FROM SUBTB1)
+
+SELECT SUBTB2.CONTRACT AS ID_SITE,
+       SUBTB2.MCH_CODE AS SERIAL,
+       SUBTB2.ID_MATERIAL,
+       SUBTB2.MCH_NAME AS DESC_MATERIAL,
+       SUBTB2.APR_CUSTO AS ID_CODE_H_APR_CUSTO,
+       TO_CHAR(SUBTB2.DATA_BASE, 'MM/YYYY') AS MES_ANO_BASE,
+       SUBTB2.DATA_BASE,
+       SUBTB2.RODAGEM,
+       SUBTB2.RODAGEM_SEM_QUEBRA,
+       SUBTB2.QTDE_OS,
+       SUBTB2.TEMPO_EM_MANUTENCAO,
+       SUBTB2.RODAGEM_SEM_QUEBRA / NVL(NULLIF(SUBTB2.QTDE_OS, 0), 1) AS MTBF,
+       SUBTB2.TEMPO_EM_MANUTENCAO / NULLIF(SUBTB2.QTDE_OS, 0) AS MTTR
+  FROM SUBTB2
