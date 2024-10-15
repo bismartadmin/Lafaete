@@ -1,0 +1,46 @@
+SELECT 
+       A.MCH_CODE                                                               AS SERIAL,
+       A.CF$_REFERENCE                                                          AS REFERENCIA,
+       A.PART_NO                                                                AS ID_MATERIAL,
+       A.MCH_NAME                                                               AS DESC_MATERIAL,
+       A.COMPANY                                                                AS ID_EMPRESA,
+       A.CONTRACT                                                               AS ID_SITE,
+       IFSLAF.FA_OBJECT_API.GET_CODE_H(A.COMPANY, A.SERIAL_NO)                  AS ID_CODE_H_APR_CUSTO,
+       A.PART_NO || '-' || A.CONTRACT                                           AS CHAVE_MATERIAL_SITE,
+       A.OWNERSHIP                                                              AS PROPRIEDADE_OBJETO,
+       A.SERIAL_STATE                                                           AS POSICAO_ATUAL_ESTOQUE,
+       NVL(A.CF$_ITERNALUSEFLAG, 'NÃO')                                         AS USO_INTERNO,
+       CASE A.CF$_SALE_STATUS_DB WHEN '1' THEN 'SIM' ELSE 'NÃO' END             AS DISPONIVEL_VENDA,
+       CASE A.CF$_EXCLUFORSALE_DB WHEN '1' THEN 'SIM' ELSE 'NÃO' END            AS EXCLUSIVO_VENDA,
+       A.CF$_PRICEFORSALE                                                       AS PRECO_VENDA,
+       A.CF$_DATE_EXLUSIVE_SALES                                                AS DATA_EXCLUSIVO_VENDA,
+       A.CF$_LOCEQUIP                                                           AS LOCAL_EQUIPAMENTO,
+       A.CF$_STATUS_EQUIPMENT                                                   AS STATUS_EQUIPAMENTO,
+       A.CF$_STATUS_GERENCIAL                                                   AS STATUS_GERENCIAL,
+       G.CF$_MANUT_ROW_ID                                                       AS ID_INSPECAO_MNT,
+       G.CF$_DATA_INSPENCAO                                                     AS DATA_INSPECAO_MNT,
+       A.CF$_NIVEL_MANUTENCAO                                                   AS NIVEL_MNT,
+       TRUNC(IFSLAF.FA_OBJECT_API.GET_ACQUISITION_DATE(A.COMPANY, A.SERIAL_NO)) AS DATA_AQUISICAO,
+       E.VALOR_AQUISICAO / (1 - 0.0925)                                         AS VALOR_AQUISICAO,
+       C.ANO_FABRICACAO                                                         AS ANO_FABRICACAO,
+       CASE WHEN NVL(C.MESES, TRUNC(MONTHS_BETWEEN(SYSDATE, NVL(IFSLAF.FA_OBJECT_API.GET_ACQUISITION_DATE(A.COMPANY, A.SERIAL_NO), (DATE '2010-01-01'))))) > 71 THEN 'ACIMA DE 5 ANOS'
+            WHEN NVL(C.MESES, TRUNC(MONTHS_BETWEEN(SYSDATE, NVL(IFSLAF.FA_OBJECT_API.GET_ACQUISITION_DATE(A.COMPANY, A.SERIAL_NO), (DATE '2010-01-01'))))) > 35 THEN 'ENTRE 3 E 5 ANOS'
+            ELSE 'ABAIXO DE 3 ANOS'
+       END                                                                      AS FAIXA_IDADE
+  FROM IFSLAF.EQUIPMENT_SERIAL_CFV A
+  LEFT JOIN (SELECT SUBSTR(F.KEY_REF, INSTR(F.KEY_REF, '^', 1) - 2, 2) AS CONTRACT,
+                    SUBSTR(F.KEY_VALUE, INSTR(F.KEY_VALUE, '^', 1) + 1, (INSTR(F.KEY_VALUE, '^', -1) - INSTR(F.KEY_VALUE, '^', 1) - 1)) AS MCH_CODE,
+                    CAST(SUBSTR(LTRIM(E.VALUE_TEXT), 1, 4) AS NUMBER) AS ANO_FABRICACAO,
+                    CAST(EXTRACT(YEAR FROM SYSDATE) - SUBSTR(LTRIM(E.VALUE_TEXT), 1, 4) AS NUMBER) * 12 AS MESES
+               FROM IFSLAF.TECHNICAL_SPECIFICATION_BOTH E
+              INNER JOIN IFSLAF.TECHNICAL_OBJECT_REFERENCE F ON (E.TECHNICAL_SPEC_NO = F.TECHNICAL_SPEC_NO)
+              WHERE E.ATTRIBUTE = 'ANO FABRICACAO'
+                AND CAST(SUBSTR(LTRIM(E.VALUE_TEXT), 1, 4) AS NUMBER) IS NOT NULL) C ON (A.CONTRACT = C.CONTRACT AND A.MCH_CODE = C.MCH_CODE)
+LEFT JOIN IFSLAF.LAF_MANUTENCAO_INSPENCAO_CLV G ON (G.CF$_SERIAL = A.MCH_CODE AND G.CF$_WO_NO IS NULL)
+ OUTER APPLY (SELECT UBV.VALUE VALOR_AQUISICAO
+                FROM IFSLAF.USRDEFINED_BASE_VALUE UBV
+               WHERE UBV.COMPANY = A.COMPANY
+                 AND UBV.OBJECT_ID = COALESCE(OBJECT_NO, A.SERIAL_NO)
+               ORDER BY UBV.VALUE     DESC,
+                        UBV.FROM_DATE DESC
+               FETCH FIRST ROW ONLY) E
