@@ -1,0 +1,3 @@
+select  DISTINCT (a.CODE_I) ID_CODE_I_NEGOCIO,
+        A.description DESC_CODE_I_NEGOCIO
+        from IFSLAF.CODE_I a
