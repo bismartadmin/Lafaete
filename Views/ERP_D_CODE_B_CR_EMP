@@ -1,0 +1,7 @@
+select  a.CODE_B ID_CODE_B_CR,
+        A.description DESC_CODE_B_CR,
+        a.COMPANY     ID_EMPRESA,
+        A.CF$_TYPE_OF_COST  TIPO_CUSTO,
+        A.COMPANY||'-'||A.CODE_B  CHAVE_EMPRESA_CR
+        
+        from IFSLAF.CODE_B_cfv a
