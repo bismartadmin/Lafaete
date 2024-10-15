@@ -1,0 +1,20 @@
+SELECT TO_date('01/'||A.CF$_MES_db||'/'||A.CF$_ANO,'DD/MM/YYYY') DATA_REFERENCIA,
+           A.CF$_CODE_F ID_PROJETO,
+           A.CF$_CODE_C ID_SITE,
+           A.CF$_DESC_CODE_C DESC_SITE,
+           A.CF$_VALOR VALOR,
+           A.CF$_QUANTIDADE QTDE,
+           A.CF$_CODE_B ID_CODE_B_CR,
+           D.PART_NO ID_MATERIAL,
+           D.DESCRIPTION DESC_MATERIAL,
+           A.CF$_CODE_D ID_CODE_D_NATUREZA,
+           A.CF$_TIPO_PREVISTO TIPO_PREVISTO,
+           A.Cf$_ano_referencia ANO_REFERENCIA,
+           A.CF$_TIPO_LANCAMENTO TIPO_LANCAMENTO,
+           CF$_CATEGORIA CATEGORIA,
+           CF$_COFINS CONFINS,
+           CF$_ICMS ICMS,
+           CF$_ISS ISS,
+           CF$_PIS PIS
+FROM IFSLAF.LAF_ANALISE_RESULTADO_PREV_CLV A
+OUTER APPLY (SELECT D.part_no, D.description FROM IFSLAF.PART_CATALOG D WHERE D.objkey = A.CF$_MATERIAL_DB) D
