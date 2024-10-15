@@ -1,0 +1,29 @@
+SELECT 
+       B.RMA_NO                                                                             ID_RMA,
+       A.RMA_LINE_NO                                                                        ID_LINHA_RMA,
+       A.C_SERIAL_NO                                                                        SERIAL,
+       a.CF$_C_AGREEMENT_ID                                                                 N_CONTRATO,
+       A.STATE                                                                              STATUS_LINHA,
+       A.CATALOG_NO                                                                         ID_MATERIAL,
+       A.CATALOG_DESC                                                                       DESC_MATERIAL,
+       A.QTY_TO_RETURN                                                                      QTDE,
+       A.DATE_RETURNED                                                                      DATA_DEVOLUCAO_CONCLUIDA,
+       A.COMPANY                                                                            ID_EMPRESA,
+       IFSLAF.RETURN_MATERIAL_REASON_API.Get_Return_Reason_Description(RETURN_REASON_CODE)  DESC_MOTIVO_DEVOLUCAO,
+       A.CF$_LOGISTICS_DATE                                                                 DATA_LOGISTICA,
+       B.DATE_REQUESTED                                                                     DATA_SOLICITACAO,
+       A.CF$_SHIPPING_COMPANY_NAME                                                          DESC_RECURSO,
+       B.CONTRACT                                                                           ID_SITE,
+       B.CUSTOMER_NO                                                                        ID_CLIENTE,
+       IFSLAF.CUST_ORD_CUSTOMER_API.Get_Name(CUSTOMER_NO)                                   DESC_CLIENTE,    
+       IFSLAF.IDENTITY_INVOICE_INFO_API.Get_Identity_Type(a.COMPANY, B.CUSTOMER_NO,
+       IFSLAF.CUSTOMER_INFO_API.GET_PARTY_TYPE(B.customer_no))                              TIPO_PARCEIRO,
+       IFSLAF.CUSTOMER_INFO_ADDRESS_API.Get_City(B.CUSTOMER_NO, B.SHIP_ADDR_NO) CIDADE_ENTREGA,
+       IFSLAF.CUSTOMER_INFO_ADDRESS_API.Get_State(B.CUSTOMER_NO, B.SHIP_ADDR_NO) UF_ENTREGA,
+       IFSLAF.CUSTOMER_INFO_ADDRESS_API.Get_City(B.CUSTOMER_NO, B.SHIP_ADDR_NO)||'-'||IFSLAF.CUSTOMER_INFO_ADDRESS_API.Get_State(B.CUSTOMER_NO, B.SHIP_ADDR_NO) CIDADE_UF
+     
+
+  FROM IFSLAF.RETURN_MATERIAL_LINE_CFV A
+  JOIN IFSLAF.RETURN_MATERIAL B 
+    ON A.RMA_NO = B.RMA_NO
+ WHERE A.STATE <> 'Cancelado'
