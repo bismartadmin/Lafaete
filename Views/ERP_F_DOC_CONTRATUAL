@@ -1,0 +1,37 @@
+select distinct
+w.agreement_id as N_CONTRATO,
+w.opportunity_no as ID_OPORTUNIDADE,
+'POS' DATA_CORTE,
+w.agreement_type as TIPO_CONTRATO,
+w.contract as ID_SITE,
+w.company as ID_EMPRESA,
+w.agreement_modality as MODALIDADE_CONTRATO,
+w.cf$_creation_date as DATA_CRIACAO,
+(select count(e.agreement_id) from ifsinfo.laf_bi_sem_doc_nf e where e.AGREEMENT_ID = w.AGREEMENT_ID) as QTDE_SEM_NF,
+(select sum(d.cf$_qty_negotiated_mob) from ifsinfo.laf_bi_ordem_de_servico d  where d.AGREEMENT_ID = w.AGREEMENT_ID) as QTDE_OS,
+(select count(b.agreement_id) from ifsinfo.laf_bi_diario_de_obra b where b.AGREEMENT_ID = w.AGREEMENT_ID) as QTDE_DIARIO_DE_OBRA,
+(select sum(c.cf$_qty_montagem) from ifsinfo.laf_bi_termo_de_entrega c where c.AGREEMENT_ID = w.AGREEMENT_ID) as QTDE_TERMO_DE_ENTREGA,
+(select count(a.agreement_id) from ifsinfo.laf_bi_ficha_de_vistoria a where a.AGREEMENT_ID = w.AGREEMENT_ID) as QTDE_FICHA_DE_VISTORIA
+from IFSLAF.C_REC_AGREEMENT_ITEM_OVW_CFV w
+left join IFSLAF.C_REC_AGREEMENT_RENTED_ASSET y on y.agreement_id = w.AGREEMENT_ID and y.opportunity_no = w.OPPORTUNITY_NO
+where TO_DATE(w.CF$_CREATION_DATE, 'DD/MM/YYYY') >= TO_DATE('01/09/2021', 'DD/MM/YYYY')
+and Y.RENTED_ASSET = 'TRUE'
+
+UNION ALL
+
+select distinct
+agreement_id as contrato,
+opportunity_no as oportunidade,
+'PRE' DATA_CORTE,
+agreement_type as tipo_contrato,
+contract as site,
+company as empresa,
+agreement_modality as modalidade_contrato,
+cf$_creation_date as data_criacao,
+(select count(e.agreement_id) from ifsinfo.Laf_Bi_Sem_Doc_Nf_Pre_Ial e where e.AGREEMENT_ID = w.AGREEMENT_ID) as sem_nf,
+(select sum(d.cf$_qty_negotiated_mob) from ifsinfo.LAF_BI_SEM_DOC_NF_PRE_IAL d  where d.AGREEMENT_ID = w.AGREEMENT_ID) as ordem_de_servico,
+(select count(b.agreement_id) from ifsinfo.Laf_Bi_Diario_De_Obra_Pre_Ial b where b.AGREEMENT_ID = w.AGREEMENT_ID) as diario_de_obra,
+(select sum(c.cf$_qty_montagem) from ifsinfo.Laf_Bi_Termo_De_Entr_Pre_Ial c where c.AGREEMENT_ID = w.AGREEMENT_ID) as termo_de_entrega,
+(select count(a.agreement_id) from ifsinfo.Laf_Bi_Ficha_De_Vist_Pre_Ial a where a.AGREEMENT_ID = w.AGREEMENT_ID) as ficha_de_vistoria
+from IFSLAF.C_REC_AGREEMENT_ITEM_OVW_CFV w
+where TO_DATE(w.CF$_CREATION_DATE, 'DD/MM/YYYY') < TO_DATE('01/09/2021', 'DD/MM/YYYY')
