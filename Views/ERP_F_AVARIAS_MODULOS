@@ -1,0 +1,42 @@
+SELECT C.serial_no SERIAL,
+       C.return_date DATA_DESMOB,
+       c.checklist_finished CHECLIST_CONCLUIDO,
+       A.wo_no  N_CHECKLIST,
+       A.reg_date DATA_ABERTURA_CHECKLIST,
+       A.state    STATUS_CHECKLIST,
+       a.mch_code,
+       COALESCE(ifslaf.HISTORICAL_SEPARATE_API.Get_C_Agreement_Id(A.wo_no),ifslaf.ACTIVE_SEPARATE_API.Get_C_Agreement_Id(A.wo_no))                       N_CONTRATO,
+       ifslaf.C_Recurrent_Agreement_API.Get_Agreement_Type(ifslaf.C_Recurrent_Agreement_Util_API.Get_Opportunity_No(COALESCE(ifslaf.HISTORICAL_SEPARATE_API.Get_C_Agreement_Id(A.wo_no),ifslaf.ACTIVE_SEPARATE_API.Get_C_Agreement_Id(A.wo_no))), COALESCE(ifslaf.HISTORICAL_SEPARATE_API.Get_C_Agreement_Id(A.wo_no),ifslaf.ACTIVE_SEPARATE_API.Get_C_Agreement_Id(A.wo_no))) TIPO_CONTRATO,
+       a.cust_order_no                                                                                                                                   ID_OV_ORIGEM,
+       ifslaf.HISTORICAL_SEPARATE_API.Get_Cust_Order_Line_No(A.wo_no)                                                                                    ID_LINHA_OV_ORIGEM,
+       ifslaf.HISTORICAL_SEPARATE_API.Get_Cust_Order_Rel_No(A.wo_no)                                                                                     ID_ENTREGA_OV_ORIGEM,
+       ifslaf.c_recurrent_agreement_api.Get_Customer_Id(c.opportunity_no,c.agreement_id)                                                                 ID_CLIENTE,
+       IFSLAF.CUSTOMER_INFO_API.Get_Name(ifslaf.c_recurrent_agreement_api.Get_Customer_Id(c.opportunity_no,c.agreement_id))                              DESC_CLIENTE,
+       ifslaf.EQUIPMENT_SERIAL_API.Get_Part_No(ifslaf.work_order_api.Get_Mch_Code_Contract(a.wo_no), ifslaf.work_order_api.Get_Mch_Code(a.wo_no))        ID_MATERIAL,
+       IFSLAF.PART_CATALOG_API.Get_Description(part_no_ => ifslaf.EQUIPMENT_SERIAL_API.Get_Part_No(ifslaf.work_order_api.Get_Mch_Code_Contract(A.wo_no),
+       ifslaf.work_order_api.Get_Mch_Code(a.wo_no)), language_code_ => 'bp')                                                                             DESC_MATERIAL,
+       b.APONTADO_POR,
+       b.ID_VF,
+       b.ID_LINHA_VF,
+       b.DATA_CRIACAO_VF,
+       b.ID_CODE_H_APR_CUSTO,
+       b.ID_MATERIAL_AVARIA,
+       b.DESC_MATERIAL_AVARIA,
+       b.VALOR_TOTAL,
+       b.STATUS_VF,
+       b.DATA_APROVACAO_VF,
+       b.ULTIMO_BM,
+       b.STATUS_BM,
+       b.ID_OV,
+       b.DATA_CRIACAO_OV,
+       b.STATUS_LINHA_OV,
+       b.ID_TITULO,
+       b.DATA_TITULO,
+       b.STATUS_TITULO,
+       b.VALOR_FATURADO
+
+FROM IFSLAF.C_REC_AGREEMENT_RENTED_ASSET c
+LEFT JOIN ifslaf.work_order a ON (c.agreement_id = COALESCE(ifslaf.HISTORICAL_SEPARATE_API.Get_C_Agreement_Id(A.wo_no),ifslaf.ACTIVE_SEPARATE_API.Get_C_Agreement_Id(A.wo_no)) AND c.order_no = a.cust_order_no AND c.order_line_no = ifslaf.HISTORICAL_SEPARATE_API.Get_Cust_Order_Line_No(A.wo_no) AND c.order_rel_no = ifslaf.HISTORICAL_SEPARATE_API.Get_Cust_Order_Rel_No(A.wo_no) AND a.work_type_id = 'CHE' AND a.state <> 'CANCELADO' AND A.mch_code = c.serial_no)
+LEFT JOIN ifsinfo.Erp_f_Fluxo_Avarias_ial b ON a.wo_no = b.N_OS
+WHERE C.rented_asset = 'FALSE' AND c.return_date IS NOT NULL
+AND (SELECT a.ID_CODE_I_NEGOCIO FROM IFSINFO.ERP_DF_CLAS_MATERIAL a where a.ID_SITE = c.contract AND a.ID_MATERIAL = c.catalog_no) = '07'
