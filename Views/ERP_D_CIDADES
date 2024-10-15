@@ -1,0 +1,10 @@
+SELECT A.city_code               ID_CIDADE,
+       IFSLAF.CITY_CODE_API.Get_City_Name(A.country_code, A.state_code, A.county_code, A.CITY_CODE) DESC_CIDADE,
+       A.ibge_code 	             COD_IBGE,
+       A.state_code              UF,
+       A.CF$_LATITUDE            LATITUDE,
+       A.CF$_LONGITUDE           LONGITUDE,
+       (IFSLAF.CITY_CODE_API.Get_City_Name(A.country_code, A.state_code, A.county_code, A.CITY_CODE)||'-'||A.STATE_CODE) CIDADE_UF
+     
+FROM IFSLAF.BR_CITY_CFV A
+WHERE A.country_code = 'BR'
