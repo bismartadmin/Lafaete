@@ -1,0 +1,6 @@
+SELECT b.wo_no N_OS, b.mch_code SERIAL, max(c.dt_cre) DATA_CONCLUSAO
+FROM IFSLAF.HISTORICAL_SEPARATE_UIV B JOIN  ifslaf.WORK_ORDER_JOURNAL c  ON B.wo_no = C.wo_no
+WHERE B.work_type_id = 'COR' AND b.objstate = 'FINISHED' 
+--AND B.mch_code = A.CF$_SERIAL_NO AND C.dt_cre < a.REAL_SHIP_DATE  
+AND c.EVENT_TYPE_db = 'STATUS_CHANGE' AND c.new_value = 'FINISHED' AND c.source_db = 'WORK_ORDER' 
+GROUP BY  b.wo_no, b.mch_code
