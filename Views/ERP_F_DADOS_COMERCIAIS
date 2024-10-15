@@ -1,0 +1,254 @@
+SELECT CON.OPPORTUNITY_NO                                                                                                                 ID_OPORTUNIDADE,
+       CAST(CON.AGREEMENT_ID AS VARCHAR2(12))                                                                                             N_CONTRATO,
+       NULL                                                                                                                               N_COTACAO,
+       OPO.DESCRIPTION                                                                                                                    DESCRICAO_OPORTUNIDADE,
+       CON.SOURCE_ID                                                                                                                      DESC_ORIGEM_ATENDIMENTO,
+       CON.CUSTOMER_ID                                                                                                                    ID_CLIENTE,
+       COALESCE(IFSLAF.CUSTOMER_HIERARCHY_API.GET_DESCRIPTION(IFSLAF.CUST_HIERARCHY_STRUCT_API.GET_HIERARCHY_ID(CON.CUSTOMER_ID)),
+                IFSLAF.CUSTOMER_INFO_API.GET_NAME(CON.CUSTOMER_ID))                                                                       DESC_CLIENTE,
+       IFSLAF.FISCAL_NOTE_API.GET_DELIVERY_CNPJ_CPF(CON.AGREEMENT_ID)                                                                  CNPJ_PARCEIRO,         
+       IFSLAF.CUSTOMER_INFO_API.GET_CUSTOMER_CATEGORY(CON.CUSTOMER_ID)                                                                    CATEGORIA_CLIENTE,
+       NVL(IFSLAF.IDENTITY_INVOICE_INFO_API.GET_IDENTITY_TYPE(CON.COMPANY, CON.CUSTOMER_ID, 'Cliente'),'Externo')                         TIPO_PARCEIRO,
+       CON.STATE                                                                                                                          STATUS,
+       CASE ITE.STATE 
+            WHEN 'Cancelado'  THEN 'Perdido'
+            WHEN 'Em Espera'  THEN 'Perdido'
+            WHEN 'Ativo'      THEN 'Ganho'
+            WHEN 'Perdido'    THEN 'Perdido'
+            WHEN 'Planejado'  THEN 'Em Andamento'
+            WHEN 'Liberado'   THEN 'Em Andamento'
+            WHEN 'Finalizado' THEN 'Ganho'
+       END                                                                                                                                STATUS_PROPOSTA,
+       CON.AGREEMENT_TYPE                                                                                                                 TIPO_CONTRATO,
+       CON.WANTED_DELIVERY_DATE                                                                                                           DATA_HORA_DESEJADA,
+       TRUNC(CON.END_PLANNED_DATE)                                                                                                        DATA_FINAL_PLANEJADA,
+       CON.CUSTOMER_PO_NO                                                                                                                 N_OC_CLIENTE,
+       CON.MAIN_CONTACT_ID                                                                                                                ID_CONTATO_CLIENTE,
+       IFSLAF.PERSON_INFO_API.GET_NAME(CON.MAIN_CONTACT_ID)                                                                               DESC_CONTATO,
+       IFSLAF.COMM_METHOD_API.GET_VALUE('PERSON', CON.MAIN_CONTACT_ID, IFSLAF.COMM_METHOD_CODE_API.DECODE('E_MAIL'), 1, '')               EMAIL_CONTATO,
+       IFSLAF.COMM_METHOD_API.GET_VALUE('PERSON', CON.MAIN_CONTACT_ID, IFSLAF.COMM_METHOD_CODE_API.DECODE('PHONE'), 1, '')                FONE_CONTATO,
+       CON.COMPANY                                                                                                                        ID_EMPRESA,
+       CON.CONTRACT                                                                                                                       ID_SITE,
+       IFSLAF.CUSTOMER_INFO_ADDRESS_API.GET_CITY(CON.CUSTOMER_ID, CON.SHIP_ADDR_NO) || '-' ||
+       IFSLAF.CUSTOMER_INFO_ADDRESS_API.GET_STATE(CON.CUSTOMER_ID, CON.SHIP_ADDR_NO)                                                      CIDADE_UF,
+       CON.SALESMAN_CODE                                                                                                                  ID_REPRESENTANTE,
+       IFSLAF.SALES_PART_SALESMAN_API.Get_Name(CON.SALESMAN_CODE)                                                                         DESC_REPRESENTANTE,
+       CON.MARKET_CODE                                                                                                                    ID_MERCADO,
+       IFSLAF.SALES_MARKET_API.Get_Description(CON.MARKET_CODE)                                                                           DESC_MERCADO,
+       CON.PROBABILITY                                                                                                                    PROBABILIDADE,
+       COALESCE((SELECT P.DATE_ENTERED
+                   FROM (SELECT P.DATE_ENTERED,
+                                ROW_NUMBER() OVER (PARTITION BY P.AGREEMENT_ID ORDER BY P.DATE_ENTERED) AS ROW_NUM
+                           FROM IFSLAF.C_REC_AGREEMENT_HISTORY P
+                          WHERE P.MESSAGE_TEXT = 'Aditivo Adicionado'
+                            AND P.AGREEMENT_ID = CON.AGREEMENT_ID) P
+                  WHERE P.ROW_NUM + 1 = ITE.LINE_NO), CON.CREATE_DATE)                                                                    DATA_CRIACAO,
+       CON.PAY_TERM_ID                                                                                                                    ID_COND_PAGTO,
+       IFSLAF.C_REC_AGREEMENT_INFO_API.GET_INSURANCE(CON.OPPORTUNITY_NO, CON.AGREEMENT_ID)                                                SEGURO,
+       IFSLAF.C_REC_AGREEMENT_INFO_API.GET_DIGITAL_AGREE_STATE(CON.OPPORTUNITY_NO, CON.AGREEMENT_ID)                                      STATUS_DOC_DIGITAL,
+       ITE.CF$_APPROVED_ANALYSIS_CRED                                                                                                     RESPOSTA_ANALISE_CREDITO,
+       CAST(ITE.LINE_NO AS VARCHAR2(4))                                                                                                   NUMERO_LINHA,
+       ITE.LINE_NAME                                                                                                                      NOME_LINHA,
+       ITE.STATE                                                                                                                          STATUS_LINHA,
+       PES.COD_PRODUTO                                                                                                                    ID_MATERIAL,
+       PES.DESCR_PRODUTO                                                                                                                  DESC_MATERIAL,
+       PES.METODO_UTILIZACAO                                                                                                              METODO_UTILIZACAO,
+       PES.QUANTIDADE                                                                                                                     QTDE,
+       PES.VALOR_TABELA                                                                                                                   VALOR_TABELA,
+       NVL(PES.DISCOUNT,0)                                                                                                                DESCONTO,
+       PES.CF$_REASON_DISCOUNT                                                                                                            MOTIVO_DESCONTO,
+       PES.VALOR_MENSAL                                                                                                                   VALOR_MENSAL,
+       PES.PERIODO                                                                                                                        PERIODO,
+       PES.VALOR_TOTAL                                                                                                                    VALOR_TOTAL,
+       PES.VALOR_UNITARIO                                                                                                                 VALOR_UNITARIO,
+       COALESCE(ITE.DELIVERY_ORDER_NO ,ITE.SERVICE_ORDER_NO)                                                                                                                       ID_OV,
+       IFSLAF.CUSTOMER_ORDER_API.GET_STATE(COALESCE(ITE.DELIVERY_ORDER_NO ,ITE.SERVICE_ORDER_NO)) STATUS_OV,
+       IFSLAF.LOSE_WIN_REASON_API.GET_REASON_DESCRIPTION(CASE WHEN ITE.WON_REASON_ID IS NOT NULL THEN ITE.WON_REASON_ID ELSE ITE.LOST_REASON_ID END) DESC_MOTIVO_PERDA_GANHO,
+       CONMAX.ULTIMA_ATUALIZACAO                                                                                                          ULT_ATUALIZACAO,
+       CASE WHEN TRUNC(SYSDATE) - TRUNC(CONMAX.ULTIMA_ATUALIZACAO) > 15 THEN 'DESATUALIZADA' ELSE 'ATUALIZADA' END                        STATUS_ATUALIZACAO,
+       IFSLAF.CUSTOMER_ORDER_API.GET_DATE_ENTERED(COALESCE(ITE.DELIVERY_ORDER_NO,ITE.SERVICE_ORDER_NO))                                   DATA_FECHAMENTO,
+       CON.AGREEMENT_MODALITY                                                                                                             MODALIDADE,
+       CASE NVL(CON.COMPANY, ' ')
+            WHEN '01' THEN CASE con.AGREEMENT_MODALITY WHEN 'Módulos' THEN '07' ELSE '03' END
+            WHEN '12' THEN '05'
+            WHEN '14' THEN '04'
+            WHEN '28' THEN '05'
+            WHEN '40' THEN '09'
+            WHEN '41' THEN '08'
+            WHEN '44' THEN '08'
+            WHEN '45' THEN '02'
+            WHEN '48' THEN '08'
+            WHEN '49' THEN '11'
+            WHEN '50' THEN '14'
+            WHEN '51' THEN '10'  
+       END AS ID_CODE_I_NEGOCIO
+  FROM IFSLAF.C_RECURRENT_AGREEMENT_CFV CON
+ INNER JOIN IFSLAF.BUSINESS_OPPORTUNITY OPO ON (CON.OPPORTUNITY_NO = OPO.OPPORTUNITY_NO)
+ INNER JOIN IFSLAF.C_REC_AGREEMENT_ITEM_CFV ITE ON (CON.OPPORTUNITY_NO = ITE.OPPORTUNITY_NO AND CON.AGREEMENT_ID = ITE.AGREEMENT_ID)
+ INNER JOIN (SELECT PRO.OPPORTUNITY_NO,
+                    PRO.AGREEMENT_ID,
+                    PRO.LINE_NO,
+                    PRO.CATALOG_NO COD_PRODUTO,
+                    IFSLAF.SALES_PART_API.Get_Catalog_Desc(PRO.CONTRACT, PRO.CATALOG_NO) DESCR_PRODUTO,
+                    IFSLAF.Commodity_Group_API.Get_Description(IFSLAF.INVENTORY_PART_API.Get_Second_Commodity(PRO.CONTRACT, PRO.CATALOG_NO)) LINHA_PRODUTO,
+                    IFSLAF.Commodity_Group_API.Get_Description(IFSLAF.INVENTORY_PART_API.Get_prime_Commodity(PRO.CONTRACT, PRO.CATALOG_NO)) GRUPO_PRODUTO,
+                    IFSLAF.SALES_GROUP_API.Get_Description(IFSLAF.SALES_PART_API.Get_Catalog_Group(PRO.CONTRACT, PRO.CATALOG_NO)) GRUPO_VENDA,
+                    IFSLAF.SALES_PART_REBATE_GROUP_API.GET_DESCRIPTION(IFSLAF.SALES_PART_API.GET_SALES_PART_REBATE_GROUP(PRO.CONTRACT, PRO.CATALOG_NO)) GRUPO_ESPECIALISTAS,
+                    PRO.CF$_METHOD_OF_USE METODO_UTILIZACAO,
+                    PRO.QTY_NEGOTIATED QUANTIDADE,
+                    PRO.RENTAL_PRICE VALOR_TABELA,
+                    PRO.DISCOUNT,
+                    PRO.CF$_REASON_DISCOUNT,
+                    PRO.MONTHLY_EXPECTED_VALUE VALOR_MENSAL,
+                    PRO.RENTAL_PERIOD PERIODO,
+                    PRO.TOTAL_EXPECTED_VALUE VALOR_TOTAL,
+                    NVL(PRO.MONTHLY_EXPECTED_VALUE / NULLIF(PRO.QTY_NEGOTIATED, 0), 0) VALOR_UNITARIO
+               FROM IFSLAF.C_REC_AGREEMENT_ITEM_PROD_CFV PRO
+
+              UNION ALL
+
+             SELECT SER.OPPORTUNITY_NO,
+                    SER.AGREEMENT_ID,
+                    SER.LINE_NO,
+                    SER.CATALOG_NO,
+                    IFSLAF.SALES_PART_API.Get_Catalog_Desc(SER.CONTRACT, SER.CATALOG_NO) DESCR_PRODUTO,
+                    NULL LINHA_PRODUTO,
+                    NULL GRUPO_PRODUTO,
+                    IFSLAF.SALES_GROUP_API.Get_Description(IFSLAF.SALES_PART_API.Get_Catalog_Group(SER.CONTRACT, SER.CATALOG_NO)) GRUPO_VENDA,
+                    IFSLAF.SALES_PART_REBATE_GROUP_API.GET_DESCRIPTION(IFSLAF.SALES_PART_API.GET_SALES_PART_REBATE_GROUP(SER.CONTRACT, SER.CATALOG_NO)) GRUPO_ESPECIALISTAS,
+                    NULL METODO_UTILIZACAO,
+                    SER.QTY_NEGOTIATED QUANTIDADE,
+                    SER.SERVICE_HOUR_PRICE VALOR_TABELA,
+                    SER.DISCOUNT,
+                    SER.CF$_REASON_DISCOUNT,
+                    SER.MONTHLY_EXPECTED_VALUE VALOR_MENSAL,
+                    SER.SERVICE_PERIOD PERIODO,
+                    SER.TOTAL_EXPECTED_VALUE VALOR_TOTAL,
+                    NVL(SER.MONTHLY_EXPECTED_VALUE / NULLIF(SER.QTY_NEGOTIATED, 0), 0) VALOR_UNITARIO
+               FROM IFSLAF.C_REC_AGREEMENT_ITEM_SERV_CFV SER
+            ) PES ON (ITE.OPPORTUNITY_NO = PES.OPPORTUNITY_NO AND ITE.AGREEMENT_ID = PES.AGREEMENT_ID AND ITE.LINE_NO = PES.LINE_NO)
+  LEFT JOIN IFSLAF.CUSTOMER_ORDER OVE ON (ITE.AGREEMENT_ID = OVE.AGREEMENT_ID AND ITE.OPPORTUNITY_NO = OVE.C_OPPORTUNITY_NO)
+  LEFT JOIN (SELECT SUBTAB.AGREEMENT_ID,
+                    TO_DATE(MAX(SUBTAB.DATA), 'YYYY/MM/DD HH24:MI:SS') ULTIMA_ATUALIZACAO
+               FROM (SELECT HIS.AGREEMENT_ID,
+                            TO_CHAR(HIS.DATE_ENTERED, 'YYYYMMDDHH24MISS') DATA
+                       FROM IFSLAF.C_REC_AGREEMENT_HISTORY HIS
+                      UNION ALL
+                      SELECT c.AGREEMENT_ID,
+                             TO_CHAR(c.Create_Date, 'YYYYMMDDHH24MISS') DATA
+                       FROM IFSLAF.C_RECURRENT_AGREEMENT C
+                      UNION ALL
+                     SELECT CAST(C.BUSINESS_OBJECT_ID AS NUMBER),
+                            TO_CHAR(E.START_DATE, 'YYYYMMDDHH24MISS') DATA
+                       FROM IFSLAF.BUSINESS_ACTIVITY_REF C
+                      INNER JOIN IFSLAF.BUSINESS_ACTIVITY E ON (C.ACTIVITY_NO = E.ACTIVITY_NO)
+                      WHERE C.BUSINESS_OBJECT_TYPE_DB = 'RECURRENT_AGREEMENT'
+                      UNION ALL
+                     SELECT (SELECT AGRE.AGREEMENT_ID FROM IFSLAF.C_RECURRENT_AGREEMENT AGRE WHERE AGRE.OPPORTUNITY_NO = C.BUSINESS_OBJECT_ID FETCH FIRST ROW ONLY),
+                            TO_CHAR(E.START_DATE, 'YYYYMMDDHH24MISS') DATA
+                       FROM IFSLAF.BUSINESS_ACTIVITY_REF C
+                      INNER JOIN IFSLAF.BUSINESS_ACTIVITY E ON (C.ACTIVITY_NO = E.ACTIVITY_NO)
+                      WHERE C.BUSINESS_OBJECT_TYPE_DB = 'BUSINESS_OPPORTUNITY') SUBTAB
+           GROUP BY SUBTAB.AGREEMENT_ID) CONMAX ON (CON.AGREEMENT_ID = CONMAX.AGREEMENT_ID) 
+           
+
+UNION ALL
+
+SELECT COT.BUSINESS_OPPORTUNITY_NO,
+       NULL,
+       COT.QUOTATION_NO,
+       OPO.DESCRIPTION DESCRICAO_OPORTUNIDADE,
+       OPO.SOURCE_ID,
+       COT.CUSTOMER_NO CODIGO_CLIENTE,    
+       coalesce(ifslaf.Customer_Hierarchy_API.Get_Description(ifslaf.Cust_Hierarchy_Struct_API.Get_Hierarchy_Id(cOT.CUSTOMER_NO)) ,IFSLAF.Customer_Info_API.Get_Name(COT.CUSTOMER_NO)) NOME_CLIENTE,
+       IFSLAF.FISCAL_NOTE_API.GET_DELIVERY_CNPJ_CPF(COT.CONTRACT)                                                                  CNPJ_PARCEIRO,  
+       IFSLAF.Customer_Info_API.Get_Customer_Category(COT.CUSTOMER_NO) CATEGORIA,
+       COALESCE(IFSLAF.IDENTITY_INVOICE_INFO_API.Get_Identity_Type(cot.COMPANY, cot.CUSTOMER_NO, 'Cliente'),'Externo') Tipo_Cliente,
+       CASE COT.STATE WHEN 'Planejada' THEN 'Planejado' ELSE COT.STATE END || CASE WHEN NVL(COT.CLOSED_STATUS, ' ') <> ' ' THEN ' - ' || COT.CLOSED_STATUS END ESTADO,
+       CASE ITC.STATE
+          WHEN 'Cancelado' THEN 'Perdido'
+          WHEN 'Liberado'  THEN 'Em Andamento'   
+          WHEN 'OV Criada' THEN 'Ganho'
+          WHEN 'Perda'     THEN 'Perdido'
+          WHEN 'Planejada' THEN 'Em Andamento'
+          WHEN 'Rejeitada' THEN 'Perdido'
+          WHEN 'Revisado'  THEN 'Em Andamento' 
+       END STATUS_GERENCIAL,
+       'Venda' TIPO_CONTRATO,
+       COT.WANTED_DELIVERY_DATE DATA_HORA_ENTREGA_DESEJADA,
+       NULL DATA_FINAL_PLANEJADA,
+       COT.CUSTOMER_QUO_NO NUM_SOLICITACAO_CLIENTE,
+       COT.CUST_REF                    ID_CONTATO,
+       IFSLAF.Contact_Util_API.Get_Cust_Contact_Name(COT.CUSTOMER_NO, COT.BILL_ADDR_NO, COT.CUST_REF) DESC_CONTATO,
+       IFSLAF.Comm_Method_API.Get_Value('PERSON', COT.CUST_REF, IFSLAF.Comm_Method_Code_API.Decode('E_MAIL'), 1, '') EMAIL_CONTATO,
+       IFSLAF.Comm_Method_API.Get_Value('PERSON', COT.CUST_REF, IFSLAF.Comm_Method_Code_API.Decode('PHONE'), 1, '') FONE_CONTATO,
+       COT.COMPANY COD_EMPRESA,
+       COT.CONTRACT COD_SITE,
+       IFSLAF.CUSTOMER_INFO_ADDRESS_API.Get_City(cot.CUSTOMER_NO, cot.SHIP_ADDR_NO)||'-'||IFSLAF.CUSTOMER_INFO_ADDRESS_API.Get_State(cot.CUSTOMER_NO, cot.SHIP_ADDR_NO) CIDADE_UF,
+       COT.SALESMAN_CODE COD_VENDEDOR,
+       IFSLAF.Sales_Part_Salesman_API.Get_Name(COT.SALESMAN_CODE) NOME_VENDEDOR,
+       COT.MARKET_CODE COD_MERCADO,
+       COT.CF$_MARKET_DESCRIPTION NOME_MERCADO,
+       CAST(COT.QUOTATION_PROBABILITY AS VARCHAR2(20)) || '%' PROBABILIDADE,
+       COT.DATE_ENTERED CRIADO,
+       COT.PAY_TERM_ID COD_COND_PAGAMENTO,
+       COT.CF$_INSURANCE_LIABILITY SEGURO,
+       COT.CF$_DOCUMENT_STATE STATUS_DOCUMENTO,
+       COT.CF$_CREDIT_ANALYSIS RESPOSTA_ANALISE,
+       '1' NUMERO_LINHA,
+       'Venda' NOME_LINHA,
+       ITC.STATE STATUS_ITEM,
+       ITC.CATALOG_NO COD_PRODUTO,
+       ITC.CATALOG_DESC DESCR_PRODUTO,
+       ITC.CF$_MET_ACOPLAMENTO METODO_UTILIZACAO,
+       ITC.BUY_QTY_DUE QUANTIDADE,
+       ITC.SALE_UNIT_PRICE PRECO_MOEDA,
+       IFSLAF.ORDER_QUOTATION_LINE_API.GET_TOTAL_DISCOUNT(ITC.QUOTATION_NO, ITC.LINE_NO, ITC.REL_NO, ITC.LINE_ITEM_NO) * 0.01 DESCONTO_TOTAL_LINHA_ORDEM,
+       ITC.CF$_REASON_DISCOUNT                                                                                                            MOTIVO_DESCONTO,
+       IFSLAF.ORDER_QUOTATION_LINE_API.GET_BASE_SALE_PRICE_TOTAL(ITC.QUOTATION_NO, ITC.LINE_NO, ITC.REL_NO, ITC.LINE_ITEM_NO) VALOR_MENSAL,
+       CAST(1 AS INT) PERIODO,
+       IFSLAF.ORDER_QUOTATION_LINE_API.GET_BASE_SALE_PRICE_TOTAL(ITC.QUOTATION_NO, ITC.LINE_NO, ITC.REL_NO, ITC.LINE_ITEM_NO) VALOR_TOTAL,
+       ITC.CF$_UNITPRICE,
+       ITC.CON_ORDER_NO,
+       IFSLAF.CUSTOMER_ORDER_API.GET_STATE(ITC.CON_ORDER_NO) STATUS_OV,
+       CASE
+          WHEN ITC.REASON_ID IS NOT NULL THEN IFSLAF.LOSE_WIN_REASON_API.GET_REASON_DESCRIPTION(ITC.REASON_ID)
+          WHEN ITC.CANCEL_REASON IS NOT NULL THEN IFSLAF.ORDER_CANCEL_REASON_API.GET_REASON_DESCRIPTION(ITC.CANCEL_REASON)
+          ELSE ITC.LOSE_WIN_NOTE
+       END MOTIVO_PER_GAN_CAN,
+       COTMAX.ULTIMA_ATUALIZACAO,
+       CASE WHEN TRUNC(SYSDATE) - TRUNC(COTMAX.ULTIMA_ATUALIZACAO) > 15 THEN 'DESATUALIZADA' ELSE 'ATUALIZADA' END STATUS_ATUALIZACAO,
+       IFSLAF.CUSTOMER_ORDER_API.GET_DATE_ENTERED(ITC.CON_ORDER_NO) DATA_FECHAMENTO,
+       COt.CF$_QUOTATION_MODALITY                                                                                                           MODALIDADE,
+       CASE NVL(COT.COMPANY, ' ')
+            WHEN '01' THEN CASE COt.CF$_QUOTATION_MODALITY WHEN 'Módulos' THEN '07' ELSE '03' END
+            WHEN '12' THEN '05'
+            WHEN '14' THEN '04'
+            WHEN '28' THEN '05'
+            WHEN '40' THEN '09'
+            WHEN '41' THEN '08'
+            WHEN '44' THEN '08'
+            WHEN '45' THEN '02'
+            WHEN '48' THEN '08'
+            WHEN '49' THEN '11'
+            WHEN '50' THEN '14'
+            WHEN '51' THEN '10'
+            WHEN '58' THEN '15'
+       END AS ID_CODE_I_NEGOCIO
+       
+  FROM IFSLAF.ORDER_QUOTATION_CFV COT
+ INNER JOIN IFSLAF.ORDER_QUOTATION_LINE_CFV ITC ON (COT.QUOTATION_NO = ITC.QUOTATION_NO)
+ INNER JOIN IFSLAF.BUSINESS_OPPORTUNITY OPO ON (COT.BUSINESS_OPPORTUNITY_NO = OPO.OPPORTUNITY_NO)
+  LEFT JOIN (SELECT SUBTAB.BUSINESS_OPPORTUNITY_NO,
+                    TO_DATE(MAX(SUBTAB.DATA), 'YYYY/MM/DD HH24:MI:SS') ULTIMA_ATUALIZACAO
+               FROM (SELECT CO2.BUSINESS_OPPORTUNITY_NO,
+                            TO_CHAR(HIS.DATE_ENTERED, 'YYYYMMDDHH24MISS') DATA
+                       FROM IFSLAF.ORDER_QUOTATION_HISTORY HIS
+                      INNER JOIN IFSLAF.ORDER_QUOTATION_CFV CO2 ON (HIS.QUOTATION_NO = CO2.QUOTATION_NO)
+                      UNION ALL
+                     SELECT C.BUSINESS_OBJECT_ID,
+                            TO_CHAR(E.START_DATE, 'YYYYMMDDHH24MISS') DATA
+                       FROM IFSLAF.BUSINESS_ACTIVITY_REF C
+                      INNER JOIN IFSLAF.BUSINESS_ACTIVITY E ON (C.ACTIVITY_NO = E.ACTIVITY_NO)
+                      WHERE C.BUSINESS_OBJECT_TYPE_DB = 'BUSINESS_OPPORTUNITY') SUBTAB
+           GROUP BY SUBTAB.BUSINESS_OPPORTUNITY_NO) COTMAX ON (COT.BUSINESS_OPPORTUNITY_NO = COTMAX.BUSINESS_OPPORTUNITY_NO)
