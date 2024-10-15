@@ -1,0 +1,21 @@
+SELECT  a.task_id                         ID_TAREFA,
+        a.name                            DESC_TAREFA,
+        a.info                            TAREFA_PRINCIPAL,
+        A.responsible                     ID_RESPONSAVEL,
+        A.responsible_name                DESC_RESPONSAVEL,
+        B.short_name                      CHAVE_PROJETO_ATIVIDADE,
+        C.CF$_CLASSIFICATION              CLASSIFICACAO,
+        c.CF$_SECTOR                      SETOR_DEMANDANTE,
+        C.CF$_DEMAND_TYPE                 TIPO_DEMANDA,
+        c.CF$_EXPECTED_DATE               DATA_ENTREGA_PREVISTA,
+        A.completed_date                  DATA_ENTREGA_REAL,
+        c.CF$_REAL_HOURS                  HORAS_REAIS,
+        A.completed                       CONCLUIDA
+        
+FROM ifslaf.ACTIVITY_TASK_EXT2 a 
+JOIN ifslaf.ACTIVITY_SUM_DETAIL b 
+ON a.project_id = b.project_id 
+AND a.sub_project_id = b.sub_project_id 
+AND a.activity_no = b.activity_no 
+AND a.activity_seq = b.activity_seq
+LEFT JOIN ifslaf.Activity_Task_CFV C ON A.objkey = C.OBJKEY
