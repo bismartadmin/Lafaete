@@ -1,0 +1,9 @@
+--Materialização da view BS_F_TRANSACOES_BANCARIAS
+DECLARE
+   p0_ VARCHAR2(32000) := 'BS_F_TRANSACOES_BANCARIAS';
+
+BEGIN
+
+IFSLAF.ial_object_api.Do_Replication__( p0_ );
+
+END;
