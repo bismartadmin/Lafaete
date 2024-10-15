@@ -1,0 +1,64 @@
+SELECT 
+A.COMPANY||'-'||B.object_id                                                 EMP_SERIAL,
+A.COMPANY                                                                   ID_EMPRESA,
+A.CONTRACT_ID                                                               ID_CONTRATO,
+A.DESCRIPTION                                                               DESC_CONTRATO,
+A.CONTRACT_TYPE                                                             TIPO_CONTRATO,
+IFSLAF.C_CONTRACT_TYPE_API.Get_Contract_Mode(A.COMPANY,A.CONTRACT_TYPE)     MODALIDADE_CONTRATO,
+A.STATE                                                                     STATUS,
+A.DATE_FROM                                                                 DATA_INICIAL,
+A.DATE_UNTIL                                                                DATA_FINAL,
+B.object_id                                                                 ID_OBJETO,
+ifslaf.FA_OBJECT_API.Get_Description(B.COMPANY,B.OBJECT_ID)                 DESC_OBJETO,
+IFSLAF.FA_OBJECT_API.Get_Acquisition_Date(B.COMPANY,B.OBJECT_ID)            DATA_AQUISICAO,
+A.DATE_AGREEMENT                                                            DATA_CONTRATO,
+B.CF$_CONDICAO                                                              CONDICAO,
+
+NVL(SUM(C.installment_amount)/(select count(d.object_id) OBJECT_ID
+from ifslaf.C_LOAN_FINAN_PARALYZED d 
+where d.contract_id = a.contract_id and d.company = a.company),0)           VALOR_PARCELA,
+--
+NVL(SUM(C.MAIN_AMOUNT)  / (select count(d.object_id) OBJECT_ID
+from ifslaf.C_LOAN_FINAN_PARALYZED d 
+where d.contract_id = a.contract_id and d.company = a.company),0)           VALOR_PRINCIPAL,
+--
+NVL(SUM(C.INTEREST_AMOUNT)/ (select count(d.object_id) OBJECT_ID
+from ifslaf.C_LOAN_FINAN_PARALYZED d 
+where d.contract_id = a.contract_id and d.company = a.company),0)           JUROS_FINANCIAMENTO,
+--   
+NVL(SUM(IOF_AMOUNT) / (select count(d.object_id) OBJECT_ID
+from ifslaf.C_LOAN_FINAN_PARALYZED d 
+where d.contract_id = a.contract_id and d.company = a.company),0)           IOF_FINANCIAMENTO,
+--
+NVL(SUM(TAC_AMOUNT) / (select count(d.object_id) OBJECT_ID
+from ifslaf.C_LOAN_FINAN_PARALYZED d 
+where d.contract_id = a.contract_id and d.company = a.company),0)           TAC_FINANCIAMENTO,
+--
+NVL(SUM(CHARGES_AMOUNT) / (select count(d.object_id) OBJECT_ID
+from ifslaf.C_LOAN_FINAN_PARALYZED d 
+where d.contract_id = a.contract_id and d.company = a.company),0)           ENCARGOS_FINANCIAMENTO,
+--
+NVL(SUM(OPEN_AMOUNT) / (select count(d.object_id) OBJECT_ID
+from ifslaf.C_LOAN_FINAN_PARALYZED d 
+where d.contract_id = a.contract_id and d.company = a.company),0)           VALOR_ABERTO
+
+ 
+  from ifslaf.C_LOAN_FINANCING a
+  left join ifslaf.C_LOAN_FINAN_PARALYZED_CFV b on b.contract_id = a.contract_id and b.company = a.company
+
+  left join ifslaf.C_FINANCIAL_PROGRAMING c on c.contract_id = a.contract_id and c.company = a.company
+
+   where b.object_id is not null
+  --and a.contract_id IN ('34698','332088')
+  
+  GROUP BY A.COMPANY, 
+           b.company,
+           A.contract_id, 
+           A.DESCRIPTION, 
+           A.CONTRACT_TYPE,          
+           A.STATE, 
+           A.DATE_FROM, 
+           A.DATE_UNTIL,
+           B.object_id, 
+           A.DATE_AGREEMENT,
+           B.CF$_CONDICAO
