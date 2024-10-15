@@ -1,0 +1,48 @@
+SELECT 
+       A.OBJECT_ID                                                                  SERIAL,
+       a.COMPANY                                                                    ID_EMPRESA,
+       A.SITE_ID                                                                    ID_SITE,
+       A.COMPANY||'-'||A.OBJECT_ID                                                  CHAVE_EMPRESA_SERIAL,
+       A.code_d                                                                     ID_CODE_D_NATUREZA,
+       E.PART_NO                                                                    ID_MATERIAL,
+       A.DESCRIPTION                                                                DESC_MATERIAL,
+       A.ACCOUNT                                                                    ID_CONTA_AQUISICAO,
+       IFSLAF.Acquisition_Account_API.Get_Description(A.COMPANY, A.ACCOUNT)         DESC_CONTA_AQUISICAO,
+       A.ACQUISITION_DATE                                                           DATA_AQUISICAO,
+       B.EVENT_DATE                                                                 DATA_EVENTO,
+       B.FA_OBJECT_TRANSACTION_TYPE                                                 TIPO_TRANSACAO_OBJETO,
+       B.PROPOSAL_ID                                                                ID_PROPOSTA,
+       IFSLAF.DEPR_PROPOSAL_API.Get_State(A.COMPANY,B.PROPOSAL_ID)                  STATUS_PROPOSTA,
+
+       IFSLAF.Fa_Book_Per_Object_API.Get_Base_Value_Depr_Cl(a.COMPANY,B.BOOK_ID,A.OBJECT_ID, to_char(sysdate,'YYYY') , to_char(sysdate,'MM') ,'FA','WITH_OR_WITHOUT_BOOK') VALOR_AQUISICAO,
+
+       IFSLAF.Fa_Book_Per_Object_API.Get_Base_Value_Depr_Cl(a.COMPANY,B.BOOK_ID,A.OBJECT_ID,to_char(sysdate,'YYYY') ,  to_char(sysdate,'MM'),'FA','WITH_OR_WITHOUT_BOOK') - NVL(C.AMOUNT_ACUM,0) VALOR_INICIO_DEPRECIACAO, --ITENS IMPORTADOS
+
+       B.AMOUNT                                                                     VALOR_DEPREC_MENSAL,       
+
+       CASE
+         WHEN --OBJETO IMPORTADO 
+           A.OBJECT_ID = C.OBJ
+         THEN (IFSLAF.Fa_Book_Per_Object_API.Get_Base_Value_Depr_Cl(a.COMPANY,B.BOOK_ID,A.OBJECT_ID, to_char(sysdate,'YYYY') ,  to_char(sysdate,'MM'),'FA','WITH_OR_WITHOUT_BOOK') - C.AMOUNT_ACUM) - (B.AMOUNT * TRUNC(MONTHS_BETWEEN(B.EVENT_DATE, C.EVENT))) 
+
+         ELSE 
+           IFSLAF.Fa_Book_Per_Object_API.Get_Base_Value_Depr_Cl(a.COMPANY,B.BOOK_ID,A.OBJECT_ID, to_char(sysdate,'YYYY') , to_char(sysdate,'MM') ,'FA','WITH_OR_WITHOUT_BOOK') - (B.AMOUNT * TRUNC(MONTHS_BETWEEN(B.EVENT_DATE,A.ACQUISITION_DATE))) 
+       END AS VALOR_LIQUIDO
+
+       FROM IFSLAF.FA_OBJECT a
+       LEFT JOIN IFSLAF.FA_OBJECT_TRANSACTION B ON (A.OBJECT_ID = B.OBJECT_ID)
+       INNER JOIN IFSLAF.FA_BOOK_PER_OBJECT D ON (A.OBJECT_ID = D.OBJECT_ID)
+       LEFT JOIN IFSLAF.EQUIPMENT_SERIAL_CFV E
+        ON A.OBJECT_ID = E.MCH_CODE
+        AND A.SITE_ID = E.CONTRACT
+       OUTER APPLY (select OBJECT_ID AS OBJ, EVENT_DATE AS EVENT, AMOUNT AS AMOUNT_ACUM from IFSLAF.FA_OBJECT_TRANSACTION where FA_OBJECT_TRANSACTION_TYPE = 'Importado' and FA_OBJECT_TRANS_VALUE_TYPE = 'Depreciação Acum' and B.OBJECT_ID = OBJECT_ID AND STATE = 'Pronto') C
+
+ 
+
+WHERE
+       A.STATE = 'Ativo'
+       AND B.STATE = 'Pronto'
+       AND B.FA_OBJECT_TRANS_VALUE_TYPE in ('Depreciação', 'Depreciação Acum')
+       AND D.BOOK_ID = 'CONTABIL'
+       AND D.FULLY_DEPRECIATED <> 'TRUE'
+       AND D.EXCLUDE_FROM_DEPRECIATION = 'FALSE'
