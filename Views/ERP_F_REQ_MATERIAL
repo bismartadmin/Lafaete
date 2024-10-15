@@ -1,0 +1,28 @@
+SELECT
+a.ORDER_NO                                                     AS N_ORDEM,
+A.LINE_NO                                                      AS N_LINHA,
+A.RELEASE_NO                                                   AS N_LIBERACAO,
+a.CONTRACT                                                     AS ID_SITE,         
+IFSLAF.Site_API.Get_Description(contract_ => A.contract)       AS DESC_SITE,
+A.PART_NO                                                      AS ID_MATERIAL,
+IFSLAF.Inventory_Part_API.Get_Description(contract_ => A.contract , part_no_ => A.part_no ) AS DESC_MATERIAL,
+IFSLAF.Internal_Customer_Api.Get_Name(ifslaf.Material_Requisition_Api.Get_Int_Customer_No(order_class_ => a.order_class ,order_no_ => a.order_no)) AS NOME_CLIENTE_INT,
+IFSLAF.Material_Requisition_API.Get_Destination_Id(order_class_ => A.order_class ,order_no_ => A.order_no) AS DESTINO_INTERNO,
+A.STATUS_CODE                                                   AS STATUS_LINHA,
+A.SUPPLY_CODE                                                   AS COD_FORNECIMENTO,
+A.DATE_ENTERED                                                  AS DATA_CRIACAO,
+A.PLANNED_DELIVERY_DATE                                         AS DATA_ENTREGA,
+A.DUE_DATE                                                      AS DATA_VENCIMENTO,
+A.QTY_DUE                                                       AS QTDE_NECESSARIA,
+A.QTY_ASSIGNED                                                  AS QTDE_RESERVADA,
+A.QTY_SHIPPED                                                   AS QTDE_BAIXADA,
+A.QTY_DUE - QTY_SHIPPED                                         AS QTDE_RESTANTE,
+A.QTY_ON_ORDER                                                  AS QTDE_SER_RECEBIDA,
+A.QTY_RETURNED                                                  AS QTDE_DEVOLVIDA,
+A.QTY_SHORT                                                     AS QTDE_FALTA,
+IFSLAF.PRE_ACCOUNTING_API.Get_Codeno_B(pre_accounting_id_ => A.pre_accounting_id) AS ID_CODE_B_CR,
+IFSLAF.PRE_ACCOUNTING_API.Get_Codeno_D(pre_accounting_id_ => A.pre_accounting_id) AS ID_CODE_D_NATUREZA,
+IFSLAF.PRE_ACCOUNTING_API.Get_Codeno_H(pre_accounting_id_ => A.pre_accounting_id) AS ID_CODE_H_APR_CUSTO,
+IFSLAF.PRE_ACCOUNTING_API.Get_Codeno_I(pre_accounting_id_ => A.pre_accounting_id) AS ID_CODE_I_NEGOCIO
+
+from IFSLAF.MATERIAL_REQUIS_LINE A
