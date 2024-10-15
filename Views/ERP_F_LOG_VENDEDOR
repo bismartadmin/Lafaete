@@ -1,0 +1,15 @@
+select a.log_id                   LOG_ID,
+       a.module                   MODULO,
+        a.lu_name                 UNIDADE_LOGICA,
+        a.table_name              TABELA,
+       a.history_type             TIPO_ALTERACAO,
+       a.username                 USUARIO_ALTERACAO,
+       a.time_stamp               DATA_ALTERACAO,
+       b.column_name              NOME_COLUNA,
+       a.keys                     DESCRICAO,
+       ifslaf.PERSON_INFO_API.Get_Name(B.old_value) DESC_REPRESENTANTE_ANTIGO,
+       ifslaf.PERSON_INFO_API.Get_Name(B.new_value) DESC_REPRESENTANTE_NOVO
+  from ifslaf.history_log A
+  join ifslaf.history_log_attribute B
+    on a.log_id = b.log_id 
+  where b.column_name = 'SALESMAN_CODE' and a.history_type <> 'Inserir'
