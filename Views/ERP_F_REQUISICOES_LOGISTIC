@@ -1,0 +1,37 @@
+select 
+       IFSLAF.CUSTOMER_ORDER_API.Get_Quotation_No(A.cust_order_no)      N_COTACAO,
+       IFSLAF.CUSTOMER_ORDER_API.Get_C_Agreement_Id(A.cust_order_no)    N_CONTRATO,       
+       A.cust_order_no                                                  ID_OV,
+       IFSLAF.CUSTOMER_ORDER_API.Get_Customer_No(A.cust_order_no)       ID_CLIENTE,
+       a.wo_no                                                          N_OS,
+       A.err_descr                                                      DESC_OS,
+       ifslaf.Organization_Api.Get_Description(A.CONTRACT,A.ORG_CODE)   DESC_ORGANIZACAO,
+       A.state                                                          STATUS_OS,
+       A.MCH_CODE                                                       SERIAL,
+       A.MCH_CODE_CONTRACT                                              ID_SITE,
+       COALESCE(IFSLAF.FA_OBJECT_API.Get_Code_H(ifslaf.company_site_api.Get_Company(contract_ => A.mch_code_contract), a.MCH_CODE),A.MCH_CODE_CONTRACT) ID_CODE_H_APR_CUSTO,
+       IFSLAF.WORK_TYPE_API.Get_Description(A.WORK_TYPE_ID)             TIPO_OS,
+       A.REG_DATE                                                       DATA_ABERTURA,
+       B.requisition_no                                                 N_REQUISICAO,
+       B.REQUISITION_DATE                                               DATA_REQUISICAO,
+       IFSLAF.Purchase_Req_Util_API.Get_Requisition_State(B.REQUISITION_NO) STATUS_REQUISICAO,
+       B.DESTINATION_ID                                                     DESTINO,
+       C.order_no                                                           ID_OC,
+       C.line_no                                                            ID_LINHA_OC,
+       IFSLAF.Purchase_Order_Line_Part_API.Get_STATE(C.Order_No,C.Line_No,C.Release_No) STATUS_LINHA_OC,
+       C.PART_NO                                                                        ID_MATERIAL_OC,
+       C.DESCRIPTION                                                                    DESC_MATERIAL_OC,
+       C.VENDOR_NO                                                                      ID_FORNECEDOR_OC,
+       IFSLAF.SUPPLIER_INFO_GENERAL_API.Get_Name(C.VENDOR_NO)                           DESC_FORNECEDOR_OC,
+       IFSLAF.Purchase_Order_Line_Part_API.Get_Planned_Receipt_Date(C.Order_No,C.Line_No,C.Release_No) DATA_RECEBIMENTO_DESEJADO,
+       IFSLAF.PURCHASE_ORDER_LINE_PART_CFP.Get_Cf$_Date_Closed(C.Order_No,C.Line_No,C.Release_No) DATA_FECHAMENTO_LINHA_REAL,
+       IFSLAF.Purchase_Order_Line_Part_API.Get_Total_In_Order_Curr(C.Order_No,C.Line_No,C.Release_No) VALOR_LINHA_OC
+       
+       
+
+from ifslaf.work_order a 
+join ifslaf.WORK_ORDER_REQUIS_PURCH b on a.wo_no = b.wo_no
+left join ifslaf.PART_WO_REQUIS_PURCH_LINE c on b.requisition_no = c.requisition_no
+
+
+where a.WORK_TYPE_ID IN ('MOB','DESM','SER-T','SER')
