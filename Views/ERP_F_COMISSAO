@@ -1,0 +1,70 @@
+select a.PAYMENT_ID ID_PAGTO,
+       A.LEDGER_ITEM_ID N_TITULO,
+       a.LEDGER_ITEM_SERIES_ID ID_SERIE,
+       a.INVOICE_ID ID_TITULO,
+       a.PAYMENT_TYPE_CODE Tipo_pagamento,
+       a.IDENTITY Id_Cliente,
+       a.NAME DESC_Cliente,
+       a.CREATORS_REFERENCE ID_OV,
+       IFSLAF.CUSTOMER_ORDER_API.Get_Order_Id(order_no_ => a.CREATORS_REFERENCE) TIPO_OV,
+       IFSLAF.CUST_ORDER_TYPE_API.Get_Description(order_id_ => IFSLAF.CUSTOMER_ORDER_API.Get_Order_Id(order_no_ => a.CREATORS_REFERENCE)) DESC_OV,
+       COALESCE(ifslaf.CUSTOMER_ORDER_API.Get_Business_Opportunity_No(a.CREATORS_REFERENCE),
+                ifslaf.ORDER_QUOTATION_API.Get_Business_Opportunity_No(ifslaf.CUSTOMER_ORDER_API.Get_Quotation_No(a.CREATORS_REFERENCE))) ID_OPORTUNIDADE,
+       IFSLAF.CUSTOMER_ORDER_API.Get_C_Agreement_Id(order_no_ => a.CREATORS_REFERENCE) N_CONTRATO,
+       IFSLAF.CUSTOMER_ORDER_API.Get_Quotation_No(order_no_ => a.CREATORS_REFERENCE) N_COTACAO,
+       IFSLAF.CUSTOMER_ORDER_API.Get_Salesman_Code(order_no_ => a.CREATORS_REFERENCE) ID_REPRESENTANTE,
+       IFSLAF.Sales_Part_Salesman_API.Get_Name(IFSLAF.CUSTOMER_ORDER_API.Get_Salesman_Code(order_no_ => a.CREATORS_REFERENCE)) DESC_REPRESENTANTE,
+       COALESCE(IFSLAF.C_REC_AGREEMENT_INFO_API.Get_Digital_Agree_State(opportunity_no_ => IFSLAF.CUSTOMER_ORDER_API.Get_C_Opportunity_No(order_no_ => a.CREATORS_REFERENCE),
+                                                                        agreement_id_   => IFSLAF.CUSTOMER_ORDER_API.Get_C_Agreement_Id(order_no_ => a.CREATORS_REFERENCE)),
+                IFSLAF.CUSTOM_FIELD_ENUM_VALUES_API.Get_Client_Value(lu_       => 'DOCUMENTSTATE',
+                                                                     db_value_ => IFSLAF.ORDER_QUOTATION_cfp.Get_Cf$_Document_State(ifslaf.ORDER_QUOTATION_API.Get_Objkey(quotation_no_ => IFSLAF.CUSTOMER_ORDER_API.Get_Quotation_No(order_no_ => a.CREATORS_REFERENCE))))) Status_Contrato,
+       CASE
+        COALESCE(IFSLAF.C_REC_AGREEMENT_INFO_API.Get_Digital_Agree_State(opportunity_no_ => IFSLAF.CUSTOMER_ORDER_API.Get_C_Opportunity_No(order_no_ => a.CREATORS_REFERENCE),
+                                                                         agreement_id_   => IFSLAF.CUSTOMER_ORDER_API.Get_C_Agreement_Id(order_no_ => a.CREATORS_REFERENCE)),
+                 IFSLAF.CUSTOM_FIELD_ENUM_VALUES_API.Get_Client_Value(lu_       => 'DOCUMENTSTATE',
+                                                                      db_value_ => IFSLAF.ORDER_QUOTATION_cfp.Get_Cf$_Document_State(ifslaf.ORDER_QUOTATION_API.Get_Objkey(quotation_no_ => IFSLAF.CUSTOMER_ORDER_API.Get_Quotation_No(order_no_ => a.CREATORS_REFERENCE)))))
+         WHEN 'Assinado' THEN
+          'Sim'
+         WHEN 'Ordem de Compra Aprovada' THEN
+          'Sim'
+         WHEN 'ASSINADO' THEN
+          'Sim'
+         WHEN 'ORDEM DE COMPRA APROVADA' THEN
+          'Sim'
+         else
+          'Não'
+       END AS "APTO A COMISSAO",
+       a.COMPANY ID_Empresa,
+       IFSLAF.COMPANY_API.Get_Name(company_ => a.COMPANY) DESC_Empresa,
+       IFSLAF.CUSTOMER_ORDER_API.Get_Contract(order_no_ => a.CREATORS_REFERENCE) ID_Site,
+       a.PAY_DATE Data_pagamento,
+       a.VOUCHER_DATE Data_Baixa,
+       a.VOUCHER_PERIOD Periodo_baixa,
+       ((a.TICKED_OF_AMOUNT * -1) + NVL(a.INTEREST_CURR_AMOUNT, 0) +
+       NVL(a.FINE_CURR_AMOUNT, 0) - NVL(a.USED_DISCOUNT, 0)) Valor_Baixado,
+       COALESCE((CASE
+         WHEN IFSLAF.CUSTOMER_ORDER_API.Get_Quotation_No(order_no_ => a.CREATORS_REFERENCE) > 0 then
+          0.01
+         else
+          ifslaf.C_REC_AGREEMENT_INFO_API.Get_Alternative_Commission(opportunity_no_ => COALESCE(ifslaf.CUSTOMER_ORDER_API.Get_Business_Opportunity_No(a.CREATORS_REFERENCE),
+                                                                                                 ifslaf.ORDER_QUOTATION_API.Get_Business_Opportunity_No(ifslaf.CUSTOMER_ORDER_API.Get_Quotation_No(a.CREATORS_REFERENCE))),
+                                                                     agreement_id_   => IFSLAF.CUSTOMER_ORDER_API.Get_C_Agreement_Id(order_no_ => a.CREATORS_REFERENCE))
+       end),CASE WHEN A.COMPANY = 40 THEN 0.01 END)  as COMISSAO,
+       ((a.TICKED_OF_AMOUNT * -1) + NVL(a.INTEREST_CURR_AMOUNT, 0) +
+       NVL(a.FINE_CURR_AMOUNT, 0) - NVL(a.USED_DISCOUNT, 0)) * COALESCE((CASE
+         WHEN IFSLAF.CUSTOMER_ORDER_API.Get_Quotation_No(order_no_ => a.CREATORS_REFERENCE) > 0 then
+          0.01
+         else
+          ifslaf.C_REC_AGREEMENT_INFO_API.Get_Alternative_Commission(opportunity_no_ => COALESCE(ifslaf.CUSTOMER_ORDER_API.Get_Business_Opportunity_No(a.CREATORS_REFERENCE),
+                                                                                                 ifslaf.ORDER_QUOTATION_API.Get_Business_Opportunity_No(ifslaf.CUSTOMER_ORDER_API.Get_Quotation_No(a.CREATORS_REFERENCE))),
+                                                                     agreement_id_   => IFSLAF.CUSTOMER_ORDER_API.Get_C_Agreement_Id(order_no_ => a.CREATORS_REFERENCE))
+       end),CASE WHEN A.COMPANY = 40 THEN 0.01 END) as VALOR_A_PAGAR
+
+  from ifslaf.LEDGER_TRANSACTION_CU_QRY a
+ where (a.PAYMENT_TYPE_CODE_DB = 'CUSTPAY' OR
+       a.PAYMENT_TYPE_CODE_DB = 'CUSTOFF')
+   and a.PARTY_TYPE_DB = 'CUSTOMER'
+   AND a.ROLLEDBACK = 'FALSE'
+   AND (a.LEDGER_ITEM_SERIES_ID = 'EX' OR a.LEDGER_ITEM_SERIES_ID = 'CD')
+   and a.company in ('01','05','14','40','41')
+   and (IFSLAF.CUSTOMER_ORDER_API.Get_Order_Id(order_no_ => a.CREATORS_REFERENCE) is null or IFSLAF.CUSTOMER_ORDER_API.Get_Order_Id(order_no_ => a.CREATORS_REFERENCE) not in ('SCT','SGA','AVA'))
