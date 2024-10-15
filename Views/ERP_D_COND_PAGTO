@@ -1,0 +1,9 @@
+SELECT A.pay_term_id           id_cond_pagto,
+       a.description           desc_cond_pagto,
+       a.CF$_PAYMENT_COND_METRIC  MEDIA_DIAS,
+       a.company               ID_EMPRESA,
+       A.pay_term_id||'-'||A.company CHAVE_COND_PAGTO_EMPRESA
+       
+       
+
+FROM IFSLAF.PAYMENT_TERM_cfv A
