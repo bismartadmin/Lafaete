@@ -1,0 +1,116 @@
+SELECT         A.COMPANY,
+               A.PARENT_COMPANY,
+               A.PAYMENT_ID,
+               A.SERIES_ID,
+               NULL TRANS_ID,
+               IFSLAF.PAYMENT_PER_CURRENCY_API.GET_SHORT_NAME(A.COMPANY, A.SERIES_ID, A.PAYMENT_ID, A.CURRENCY) AS SHORT_NAME,
+               A.VOUCHER_NO,
+               A.VOUCHER_DATE,
+               A.PAY_DATE,
+               A.VOUCHER_TYPE,
+               A.PAYMENT_TYPE_CODE,
+               NULL REFERENCE_NUMBER, --E.REFERENCE_NUMBER,
+               NULL INSTALLMENT_ID,
+               NULL TIPO_TITULO,
+               C.VOUCHER_DATE LEDGER_DATE,
+               C.VOUCHER_DATE C_DUE_DATE_ORG,
+               C.VOUCHER_DATE DUE_DATE,
+               C.IDENTITY,
+               C.NAME,
+               NULL ESPECIE_PARCEIRO,
+               NULL TIPO_PARCEIRO,
+               C.IDENTITY PARTY_TYPE_ID,
+               E.CODE_A,
+               E.CODE_B,
+               E.CODE_C,
+               E.CODE_D,
+               E.CODE_E,
+               E.CODE_F,
+               E.CODE_G,
+               E.CODE_H,
+               E.CODE_I,
+               E.CODE_J,
+               CASE WHEN C.TICKED_OF_AMOUNT IS NULL THEN E.CURR_AMOUNT ELSE CASE WHEN E.CURR_AMOUNT IS NULL THEN ABS(C.TICKED_OF_AMOUNT) ELSE E.CURR_AMOUNT END END VALOR,
+               --CASE WHEN C.TICKED_OF_AMOUNT IS NULL THEN ABS(A.CURR_AMOUNT) ELSE ABS(C.TICKED_OF_AMOUNT)  END VALOR,
+               'Saida' TIPO_MOVIMENTO,
+               A.OBJVERSION,
+               E.POSTING_TYPE,
+               E.text OBS,
+               'L' BLOCO_CODIGO,
+               NULL ADV_INV,
+               NULL ID_SERIE
+          FROM IFSLAF.PAYMENT_PER_CURRENCY_SU_QRY A  
+          JOIN IFSLAF.PAYMENT B ON (A.COMPANY = B.PARENT_COMPANY AND A.SERIES_ID = B.SERIES_ID AND A.PAYMENT_ID = B.PARENT_PAYMENT_ID) 
+         JOIN IFSLAF.LEDGER_TRANSACTION_SU_QRY C ON (C.COMPANY = B.COMPANY AND c.voucher_date = b.voucher_date AND b.voucher_no = c.voucher_no AND c.payment_id = b.payment_id ) 
+         JOIN IFSLAF.PAY_ACCOUNTING_ROW_SU_QRY E ON (E.COMPANY = C.COMPANY AND E.SERIES_ID = C.SERIES_ID AND E.PAYMENT_ID = C.PAYMENT_ID AND E.TRANS_ID = C.TRANS_ID AND E.CURRENCY = C.CURRENCY)        
+         WHERE (A.SERIES_ID = 'SUPAY')
+         and  (A.VOUCHER_TYPE IN ('B', 'N', 'U','GF'))
+           AND (A.MULTI_COMPANY_PAY_EXIST = 'TRUE')
+           and (A.DOM_AMOUNT IS NULL OR A.DOM_AMOUNT >= 0)
+           AND  E.POSTING_TYPE NOT IN ('IP16','IP18') 
+           and a.payment_type_code_db = 'SUPPPAY'
+           AND IFSLAF.PAYMENT_PER_CURRENCY_API.GET_SHORT_NAME(A.COMPANY, A.SERIES_ID, A.PAYMENT_ID, A.CURRENCY) IS NOT NULL
+           AND (EXISTS(SELECT 1
+                         FROM IFSLAF.CASH_TRANSACTION Z 
+                        WHERE (A.COMPANY = Z.COMPANY)
+                          AND (A.SERIES_ID = Z.SERIES_ID)
+                          AND (A.PAYMENT_ID = Z.PAYMENT_ID)
+                          AND (Z.ROLLEDBACK = 'FALSE')))  
+UNION ALL                          
+SELECT         A.COMPANY,
+               A.PARENT_COMPANY,
+               A.PAYMENT_ID,
+               A.SERIES_ID,
+               NULL TRANS_ID,
+               IFSLAF.PAYMENT_PER_CURRENCY_API.GET_SHORT_NAME(A.COMPANY, A.SERIES_ID, A.PAYMENT_ID, A.CURRENCY) AS SHORT_NAME,
+               A.VOUCHER_NO,
+               A.VOUCHER_DATE,
+               A.PAY_DATE,
+               A.VOUCHER_TYPE,
+               A.PAYMENT_TYPE_CODE,
+               NULL REFERENCE_NUMBER, --E.REFERENCE_NUMBER,
+               NULL INSTALLMENT_ID,
+               NULL TIPO_TITULO,
+               C.VOUCHER_DATE LEDGER_DATE,
+               C.VOUCHER_DATE C_DUE_DATE_ORG,
+               C.VOUCHER_DATE DUE_DATE,
+               C.IDENTITY,
+               C.NAME,
+               NULL ESPECIE_PARCEIRO,
+               NULL TIPO_PARCEIRO,
+               C.IDENTITY PARTY_TYPE_ID,
+               E.CODE_A,
+               E.CODE_B,
+               E.CODE_C,
+               E.CODE_D,
+               E.CODE_E,
+               E.CODE_F,
+               E.CODE_G,
+               E.CODE_H,
+               E.CODE_I,
+               E.CODE_J,
+               CASE WHEN C.TICKED_OF_AMOUNT IS NULL THEN E.CURR_AMOUNT ELSE CASE WHEN E.CURR_AMOUNT IS NULL THEN ABS(C.TICKED_OF_AMOUNT) ELSE E.CURR_AMOUNT END END VALOR,
+               --CASE WHEN C.TICKED_OF_AMOUNT IS NULL THEN ABS(A.CURR_AMOUNT) ELSE ABS(C.TICKED_OF_AMOUNT)  END VALOR,
+               'Saida' TIPO_MOVIMENTO,
+               A.OBJVERSION,
+               E.POSTING_TYPE,
+               E.text OBS,
+               'L' BLOCO_CODIGO,
+               NULL ADV_INV,
+               NULL ID_SERIE
+          FROM IFSLAF.PAYMENT_PER_CURRENCY_SU_QRY A  
+         JOIN IFSLAF.LEDGER_TRANSACTION_SU_QRY C ON (C.COMPANY = A.COMPANY AND c.voucher_date = A.voucher_date AND A.voucher_no = c.voucher_no AND c.payment_id = A.payment_id ) 
+         JOIN IFSLAF.PAY_ACCOUNTING_ROW_SU_QRY E ON (E.COMPANY = C.COMPANY AND E.SERIES_ID = C.SERIES_ID AND E.PAYMENT_ID = C.PAYMENT_ID AND E.TRANS_ID = C.TRANS_ID AND E.CURRENCY = C.CURRENCY)        
+         WHERE (A.SERIES_ID = 'SUPAY')
+         and  (A.VOUCHER_TYPE IN ('B', 'N', 'U','GF'))
+           AND (A.MULTI_COMPANY_PAY_EXIST = 'TRUE')
+           and (A.DOM_AMOUNT IS NULL OR A.DOM_AMOUNT >= 0)
+           AND  E.POSTING_TYPE NOT IN ('IP16','IP18','PP37') 
+           and a.payment_type_code_db = 'SUPPPAY'
+           AND IFSLAF.PAYMENT_PER_CURRENCY_API.GET_SHORT_NAME(A.COMPANY, A.SERIES_ID, A.PAYMENT_ID, A.CURRENCY) IS NOT NULL
+           AND (EXISTS(SELECT 1
+                         FROM IFSLAF.CASH_TRANSACTION Z 
+                        WHERE (A.COMPANY = Z.COMPANY)
+                          AND (A.SERIES_ID = Z.SERIES_ID)
+                          AND (A.PAYMENT_ID = Z.PAYMENT_ID)
+                          AND (Z.ROLLEDBACK = 'FALSE')))
