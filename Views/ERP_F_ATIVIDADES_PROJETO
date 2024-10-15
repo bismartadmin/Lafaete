@@ -1,0 +1,16 @@
+SELECT  a.project_id                                                                           ID_PROJETO,
+        B.name                                                                                 DESC_PROJETO,
+        B.state                                                                                STATUS_PROJETO,
+        IFSLAF.SUB_PROJECT_API.Get_Description(a.project_id,a.sub_project_id)                  DESC_SUB_PROJETO,
+        B.company                                                                              ID_EMPRESA,
+        a.project_id||'-'|| B.company                                                          CHAVE_PROJETO_EMPRESA,
+        A.short_name                                                                           CHAVE_PROJETO_ATIVIDADE,
+        A.activity_seq                                                                         ID_ATIVIDADE,
+        A.description                                                                          DESC_ATIVIDADE,
+        A.actual_start                                                                         INICIO_REAL,
+        A.actual_finish                                                                        FINAL_REAL,
+        A.actual_cost                                                                          CUSTO_REAL,
+        A.hours_used                                                                           HORAS_APONTADAS,
+        A.state                                                                                STATUS_ATIVIDADE
+         
+FROM ifslaf.ACTIVITY_SUM_DETAIL a JOIN IFSLAF.PROJECT B ON A.project_id = B.project_id
