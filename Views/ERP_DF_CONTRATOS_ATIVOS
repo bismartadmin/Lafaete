@@ -1,0 +1,84 @@
+WITH SUBTB1 AS
+ (SELECT A.OPPORTUNITY_NO,
+         A.AGREEMENT_ID,
+         A.DATE_ENTERED
+    FROM IFSLAF.C_REC_AGREEMENT_HISTORY A
+   WHERE (REGEXP_LIKE(A.MESSAGE_TEXT, '(Customer|Ordem)'))
+     AND (A.HISTORY_NO = (SELECT MIN(B.HISTORY_NO)
+                            FROM IFSLAF.C_REC_AGREEMENT_HISTORY B
+                           WHERE (REGEXP_LIKE(B.MESSAGE_TEXT, '(Customer|Ordem)'))
+                             AND (B.OPPORTUNITY_NO = A.OPPORTUNITY_NO)
+                             AND (B.AGREEMENT_ID = A.AGREEMENT_ID)))),
+
+SUBTB2 AS
+ (SELECT A.OPPORTUNITY_NO,
+         A.AGREEMENT_ID,
+         A.MESSAGE_TEXT,
+         A.DATE_ENTERED,
+         A.USERID
+    FROM IFSLAF.C_REC_AGREEMENT_HISTORY A
+   WHERE (A.MESSAGE_TEXT LIKE '%Reajuste%')
+     AND (A.DATE_ENTERED = (SELECT MAX(B.DATE_ENTERED)
+                              FROM IFSLAF.C_REC_AGREEMENT_HISTORY B
+                             WHERE (B.MESSAGE_TEXT LIKE '%Reajuste%')
+                               AND (B.OPPORTUNITY_NO = A.OPPORTUNITY_NO)
+                               AND (B.AGREEMENT_ID = A.AGREEMENT_ID)))),
+
+SUBTB3 AS
+ (SELECT A.OPPORTUNITY_NO,
+         A.AGREEMENT_ID,
+         COUNT(A.LINE_NO) AS Qtde_Aditivos,
+         SUM(A.TOTAL_EXPECTED_VALUE) AS Valor_Previsto
+    FROM IFSLAF.C_REC_AGREEMENT_ITEM A
+   WHERE (REGEXP_LIKE(A.OBJSTATE, '(Active|Finished)'))
+   GROUP BY A.OPPORTUNITY_NO,
+            A.AGREEMENT_ID)
+
+SELECT A.AGREEMENT_ID                                                                                                                       N_CONTRATO,
+       A.OPPORTUNITY_NO                                                                                                                     ID_OPORTUNIDADE,
+       A.CUSTOMER_ID                                                                                                                        ID_CLIENTE,
+       IFSLAF.CUSTOMER_INFO_API.GET_NAME(A.CUSTOMER_ID)                                                                                     DESC_CLIENTE,
+       IFSLAF.IDENTITY_INVOICE_INFO_API.GET_IDENTITY_TYPE(A.COMPANY, A.CUSTOMER_ID, IFSLAF.CUSTOMER_INFO_API.GET_PARTY_TYPE(A.CUSTOMER_ID)) TIPO_PARCEIRO,
+       A.COMPANY                                                                                                                            ID_EMPRESA,
+       A.CONTRACT                                                                                                                           ID_SITE,
+       COALESCE(A.CF$_CODE_H, A.CONTRACT)                                                                                                   ID_CODE_H_APR_CUSTO,
+       A.STATE                                                                                                                              STATUS_CONTRATO,
+       A.AGREEMENT_TYPE                                                                                                                     TIPO_CONTRATO,
+       A.CUSTOMER_PO_NO                                                                                                                     OC_CLIENTE,
+       IFSLAF.CUSTOMER_INFO_ADDRESS_API.Get_Address(A.CUSTOMER_ID, A.SHIP_ADDR_NO)                                                          END_ENTREGA,
+       IFSLAF.CUSTOMER_INFO_ADDRESS_API.Get_Address(A.CUSTOMER_ID, A.BILL_ADDR_NO)                                                          END_DOCUMENTO,
+       IFSLAF.CUSTOMER_INFO_ADDRESS_API.Get_City(A.CUSTOMER_ID,
+       A.SHIP_ADDR_NO)||'-'||IFSLAF.CUSTOMER_INFO_ADDRESS_API.Get_State(A.CUSTOMER_ID, A.SHIP_ADDR_NO)                                      CIDADE_UF,
+       A.SALESMAN_CODE                                                                                                                      ID_REPRESENTANTE,
+       IFSLAF.SALES_PART_SALESMAN_API.GET_NAME(A.SALESMAN_CODE)                                                                             DESC_REPRESENTANTE,
+       A.AGREEMENT_MODALITY                                                                                                                 MODALIDADE_CONTRATO,
+       IFSLAF.C_REC_AGREEMENT_INFO_API.GET_DIGITAL_AGREE_STATE(A.OPPORTUNITY_NO, A.AGREEMENT_ID)                                            STATUS_DOC_DIGITAL,
+       IFSLAF.C_REC_AGREEMENT_INFO_API.GET_PHYSICAL_AGREE_STATE(A.OPPORTUNITY_NO, A.AGREEMENT_ID)                                           STATUS_DOC_FISICO,
+       IFSLAF.C_REC_AGREEMENT_INFO_API.GET_AGREEMENT_MODEL(A.OPPORTUNITY_NO, A.AGREEMENT_ID)                                                MODELO_DOC_CONTRATO,
+       IFSLAF.C_MEASUR_BULLETIN_UTIL_API.GET_NEXT_MEASUREMENT_DATE(A.OPPORTUNITY_NO, A.AGREEMENT_ID)                                        DATA_PROX_MEDICAO,
+       IFSLAF.C_REC_AGREEMENT_INFO_API.GET_NEXT_BILLING_REF_DATE(A.OPPORTUNITY_NO, A.AGREEMENT_ID)                                          DATA_PROX_FATURAMENTO,
+       IFSLAF.C_REC_AGREEMENT_INFO_API.GET_NEXT_ADJ_AGREEMENT_DATE(A.OPPORTUNITY_NO, A.AGREEMENT_ID)                                        DATA_PROX_REAJUSTE,
+       IFSLAF.C_REC_AGREEMENT_INFO_API.Get_Billing_Cutoff_Date(A.OPPORTUNITY_NO, A.AGREEMENT_ID)                                            DATA_CORTE_FATURAMENTO,
+       C.MESSAGE_TEXT                                                                                                                       ULT_REAJUSTE,
+       C.DATE_ENTERED                                                                                                                       DATA_ULT_REAJUSTE,
+       C.USERID                                                                                                                             USUARIO_ULT_REAJUSTE,
+       IFSLAF.PERSON_INFO_API.GET_NAME(IFSLAF.C_REC_AGREEMENT_INFO_API.GET_AGREEMENT_MANAGER(A.OPPORTUNITY_NO, A.AGREEMENT_ID))             DESC_GESTOR_CONTRATO,
+       A.CREATE_DATE                                                                                                                        DATA_PROPOSTA,
+       B.DATE_ENTERED                                                                                                                       DATA_FECHAMENTO,
+       A.END_PLANNED_DATE                                                                                                                   DATA_FINAL_PREVISTA,
+       A.CF$_CODE_F                                                                                                                         PROJETO,
+       IFSLAF.PAYMENT_TERM_API.GET_DESCRIPTION(A.COMPANY, A.PAY_TERM_ID)                                                                    DESC_COND_PAGTO,
+       IFSLAF.PAYMENT_WAY_API.GET_DESCRIPTION(A.COMPANY, A.WAY_ID)                                                                          DESC_METODO_PAGTO,
+       A.ADVANCE_PAYMENT                                                                                                                    PAGTO_ANTECIPADO,
+       A.VARIABLE_ITEMS                                                                                                                     ITENS_VARIAVEIS,
+       NVL(A.CF$_BLOCKED_INVOICED, 'NAO')                                                                                                   FATURAMENTO_BLOQUEADO,
+       D.QTDE_ADITIVOS                                                                                                                      QTDE_ADITIVOS,
+       D.VALOR_PREVISTO                                                                                                                     VALOR_TOTAL_PREVISTO,
+       A.CF$_READJUSTMENT_INDEX                                                                                                             INDICE_REAJUSTE,
+       IFSLAF.LAF_SIM_NAO_CFP.DECODE(NVL(A.CF$_ACEITE_TACITO_BM_DB, '0'))                                                                   ACEITE_TACITO_BM,
+       A.NOTE                                                                                                                               NOTAS
+  FROM IFSLAF.C_RECURRENT_AGREEMENT_CFV A
+ INNER JOIN IFSLAF.SUBTB1 B ON (A.OPPORTUNITY_NO = B.OPPORTUNITY_NO AND A.AGREEMENT_ID = B.AGREEMENT_ID)
+  LEFT JOIN IFSLAF.SUBTB2 C ON (A.OPPORTUNITY_NO = C.OPPORTUNITY_NO AND A.AGREEMENT_ID = C.AGREEMENT_ID)
+  LEFT JOIN IFSLAF.SUBTB3 D ON (A.OPPORTUNITY_NO = D.OPPORTUNITY_NO AND A.AGREEMENT_ID = D.AGREEMENT_ID)
+ WHERE (REGEXP_LIKE(A.OBJSTATE, '(Active|Finished)'))
