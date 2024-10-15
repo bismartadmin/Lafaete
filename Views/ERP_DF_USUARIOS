@@ -1,0 +1,15 @@
+select b.person_id        ID_PESSOA,
+       B.name             NOME_COMPLETO,
+       b.user_id          USUARIO,
+       CASE D.active WHEN 'TRUE' THEN 'Ativo' else 'Inativo' end           STATUS_USUARIO,
+       A.role_scope       TIPO_LICENCA,
+       c.date_of_birth    DATA_ANIVERSARIO,
+       ifslaf.COMPANY_POSITION_API.Get_Position_Title('01',C.POS_CODE) TITULO_POSICAO,
+       C.sup_name         NOME_SUPERIOR,
+       IFSLAF.COMPANY_ORG_API.Get_Org_Name('01',c.ORG_CODE) ORGANIZACAO
+
+from ifslaf.PERSON_INFO_ALL b 
+OUTER APPLY (SELECT * FROM ifslaf.COMPANY_PERSON_ALL C WHERE C.person_id = B.person_id ORDER BY C.person_id FETCH FIRST ROW ONLY) c
+OUTER APPLY (SELECT * FROM ifslaf.fnd_licensed_role_user a WHERE b.user_id = a.identity) A
+OUTER APPLY (SELECT * FROM IFSLAF.fnd_user d WHERE a.identity = d.identity ORDER BY D.identity FETCH FIRST ROW ONLY) D
+WHERE B.customer_contact_db = 'FALSE'
