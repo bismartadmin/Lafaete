@@ -1,0 +1,7 @@
+select ID_EMPRESA,
+       TO_CHAR(ID_SITE) AS ID_SITE,
+       ID_JORNADA,
+       DESC_JORNADA,
+       DURACAO_JORNADA,
+       DURACAO_INTERVALO
+from ifslaf.HUM_D_JORNADA
