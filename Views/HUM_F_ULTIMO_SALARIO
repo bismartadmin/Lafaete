@@ -1,0 +1,11 @@
+select ID_PESSOA,
+       DESC_PESSOA,
+       ID_EMPRESA,
+       TO_CHAR(ID_SITE) ID_SITE,
+       DATA_COMPETENCIA,
+       VALOR_SALARIO,
+       ID_LOTACAO,
+       ID_CARGO,
+       MAO_DE_OBRA,
+       CHAVE
+from ifslaf.hum_f_ultimo_salario
