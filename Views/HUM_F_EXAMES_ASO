@@ -1,0 +1,7 @@
+select ID_PESSOA,
+       DESC_PESSOA,
+       TIPO_ASO,
+       TO_DATE(DATA_ASO,'DD/MM/RRRR') DATA_ASO,
+       RESULTADO_ASO
+from ifslaf.HUM_F_EXAMES_ASO
+order by data_aso
