@@ -1,0 +1,50 @@
+SELECT FFH.ID_EMPRESA                                            AS ID_EMPRESA,
+       IFSLAF.COMPANY_API.GET_NAME(IFSLAF.COMPANY_SITE_API.GET_COMPANY(SIT.CONTRACT))  AS DESC_EMPRESA,
+       FFH.ID_SITE                                                                   AS ID_SITE,
+       IFSLAF.SITE_API.GET_DESCRIPTION(SIT.CONTRACT)                                   AS DESC_SITE,
+       CAST(FFH.CODIGO_FUNC AS VARCHAR2(20))                                         AS ID_PESSOA,
+       FFH.NOME_FUNC                                                                 AS DESC_PESSOA,
+       FFH.CNPJ_CPF_FUNC                                                             AS CPF_CNPJ,
+       TO_DATE(FFH.DATA_COMPETENCIA, 'RRRR/MM/DD')                                   AS DATA_COMPETENCIA,
+       CAST(FFH.RUBRICA AS VARCHAR2(25))                                             AS ID_RUBRICA,
+       RUB.CF$_DENOMINACAO_RUBRICA                                                     AS DESC_RUBRICA,
+       FFH.TOTAL_LIQUIDO * CASE RUB.CF$_TIPO_RUBRICA_DB WHEN 'D' THEN - 1 ELSE 1 END AS VALOR,
+       FFH.TOTAL_LIQUIDO                                                             AS TOTAL_LIQUIDO,
+       LOT.CF$_CODE_B                                                                  AS ID_CODE_B_CR,
+       SIT.CONTRACT                                                                    AS ID_CODE_C_SITE,
+       RUB.CF$_CODE_D                                                                  AS ID_CODE_D_NATUREZA,
+       RTRIM(LTRIM(FFH.CODENO_F))                                                    AS ID_CODE_F_PROJETO,
+       CASE NVL(LOT.CF$_CODE_H, ' ')
+            WHEN '03' THEN CASE LOT.CF$_CODE_B WHEN '0025' THEN '03' ELSE '07' END
+            WHEN '09' THEN CASE LOT.CF$_CODE_B WHEN '0025' THEN '03' WHEN '0026' THEN '07'WHEN '0027' THEN '07'ELSE '01' END
+            WHEN '10' THEN CASE LOT.CF$_CODE_B WHEN '0025' THEN '03' WHEN '0026' THEN '07'WHEN '0027' THEN '07'ELSE '01' END
+            WHEN '11' THEN CASE LOT.CF$_CODE_B WHEN '0025' THEN '03' WHEN '0026' THEN '07'WHEN '0027' THEN '07'ELSE '01' END
+            WHEN '12' THEN '05'
+            WHEN '14' THEN '04'
+            WHEN '18' THEN '07'
+            WHEN '19' THEN '07'
+            WHEN '24' THEN '07'
+            WHEN '26' THEN '07'
+            WHEN '28' THEN '05'
+            WHEN '37' THEN '07'
+            WHEN '38' THEN '07'
+            WHEN '40' THEN '09'
+            WHEN '41' THEN '08'
+            WHEN '42' THEN '07'
+            WHEN '43' THEN '07'
+            WHEN '44' THEN '08'
+            WHEN '45' THEN '02'
+            WHEN '48' THEN '08'
+            WHEN '49' THEN '11'
+            WHEN '50' THEN '14'
+            ELSE CASE LOT.CF$_CODE_B WHEN '0002' THEN '01' END
+       END                                                                             AS ID_CODE_I_NEGOCIO
+  FROM IFSLAF."HUM_F_FOLHA" FFH
+LEFT JOIN IFSLAF.LAF_RUBRICAS_HUMANUS_CLV RUB
+    ON (FFH.RUBRICA = RUB.CF$_CODIGO_RUBRICA
+    AND FFH.COD_MAO_OBRA = RUB.CF$_MAO_OBRA_DB )
+  LEFT JOIN IFSLAF.COMPANY_SITE_CFV SIT
+    ON (FFH.ID_SITE = SIT.CONTRACT)
+  LEFT JOIN IFSLAF.LAF_LOTACAO_HUMANUS_CLV  LOT
+    ON (SIT.CONTRACT = LOT.CF$_CONTRACT
+    AND FFH.COD_LOTACAO = LOT.CF$_CODIGO_LOTACAO)
