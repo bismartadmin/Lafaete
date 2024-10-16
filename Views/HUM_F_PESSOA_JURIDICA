@@ -1,0 +1,8 @@
+SELECT 
+    "id_pessoa",
+    "id_site",
+    "nome_pessoa",
+    "tipo_pessoa",
+    "matricula",
+    "email"
+FROM IFSLAF."HUM_F_PESSOA_JURIDICA"
