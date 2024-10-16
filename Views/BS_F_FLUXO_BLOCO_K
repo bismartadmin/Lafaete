@@ -51,4 +51,4 @@ SELECT A.COMPANY,
                         WHERE (A.COMPANY = Z.COMPANY)
                           AND (A.SERIES_ID = Z.SERIES_ID)
                           AND (A.PAYMENT_ID = Z.PAYMENT_ID)
-                          AND (Z.ROLLEDBACK = 'TRUE')))
+                          AND (Z.ROLLEDBACK = 'FALSE')))
