@@ -1,4 +1,4 @@
-SELECT
+SELECT 
         A.COMPANY,
         A.INVOICE_ID,
         A.INVOICE_NO,
@@ -15,6 +15,6 @@ SELECT
         A.CODE_I,
         A.CODE_J,
         A.INV_DOM_AMOUNT,
-        A.INV_DOM_AMOUNT/IFSLAF.MAN_CUST_INVOICE_API.get_actual_net_curr_amount (A.company, A.invoice_id) AS percent
+        A.INV_DOM_AMOUNT/IFSLAF.MAN_CUST_INVOICE_API.Get_Actual_Net_Dom_Amount(A.company, A.invoice_id) AS percent
     FROM
         IFSLAF.CUST_INV_INTEREST_FINE_QRY A
