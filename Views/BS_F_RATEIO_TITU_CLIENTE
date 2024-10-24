@@ -1,0 +1,20 @@
+SELECT
+        A.COMPANY,
+        A.INVOICE_ID,
+        A.INVOICE_NO,
+        A.IDENTITY,
+        A.PARTY_TYPE,
+        A.CODE_A,
+        A.CODE_B,
+        A.CODE_C,
+        A.CODE_D,
+        A.CODE_E,
+        A.CODE_F,
+        A.CODE_G,
+        A.CODE_H,
+        A.CODE_I,
+        A.CODE_J,
+        A.INV_DOM_AMOUNT,
+        A.INV_DOM_AMOUNT/IFSLAF.MAN_CUST_INVOICE_API.get_actual_net_curr_amount (A.company, A.invoice_id) AS percent
+    FROM
+        IFSLAF.CUST_INV_INTEREST_FINE_QRY A
