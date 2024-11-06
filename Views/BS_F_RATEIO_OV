@@ -1,0 +1,19 @@
+select b.company,
+       a.invoice_id,
+       a.order_no,
+       b.code_b,
+       b.code_c,
+       b.code_d,
+       b.code_e,
+       b.code_f,
+       b.code_g,
+       b.code_h,
+       b.code_i,
+       b.code_j,
+       nvl(ifslaf.Customer_Order_Line_API.Get_Base_Sale_Price_Total(b.ORDER_NO, b.LINE_NO, b.REL_NO, b.LINE_ITEM_NO),0) valor_linha,
+       nvl(ifslaf.Customer_Order_API.Get_Ord_Gross_Amount(b.ORDER_NO),0) valor_ov,
+       nvl(ifslaf.Customer_Order_Line_API.Get_Base_Sale_Price_Total(b.ORDER_NO, b.LINE_NO, b.REL_NO, b.LINE_ITEM_NO),0) / nvl(ifslaf.Customer_Order_API.Get_Ord_Gross_Amount(b.ORDER_NO),0) PERCENT
+
+from ifslaf.CUSTOMER_ORDER_INV_JOIN a 
+join ifslaf.CUSTOMER_ORDER_join b on a.order_no = b.order_no AND a.LINE_no = b.line_no AND a.RELEASE_NO = b.REL_NO aND a.line_item_no = b.line_item_no 
+where b.SALE_UNIT_PRICE <> 0 and b.OBJstate <> 'Cancelled' and a.head_objstate_db <> 'Cancelled'
