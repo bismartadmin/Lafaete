@@ -15,7 +15,7 @@ SELECT
         A.CODE_I,
         A.CODE_J,
         A.CURR_AMOUNT,
-        A.CURR_AMOUNT / IFSLAF.MAN_SUPP_INVOICE_API.Get_Inv_Actual_Net_Curr_Amt(A.company, A.invoice_id) AS percent 
+        ROUND(A.CURR_AMOUNT / IFSLAF.MAN_SUPP_INVOICE_API.Get_Inv_Actual_Net_Curr_Amt(A.company, A.invoice_id),2) AS PERCENT 
     FROM 
         IFSLAF.MAN_SUPP_INVOICE_POSTINGS A
     JOIN 
@@ -23,7 +23,8 @@ SELECT
     ON 
         B.invoice_id = A.invoice_id 
         AND B.company = A.company
-    WHERE 
-        A.POSTING_TYPE NOT IN ('IP5','IP1','IP3','IP9', 'IP10', 'IP11', 'IP13', 'IP14', 'IP16', 'IP18', 'IP22', 'IP24', 'IP26', 'IP27', 'IP28', 'IP31', 'SP3')
-        and b.invoice_id not in ('129077','123757','857179','452769')
-        AND A.line_ref IS NOT NULL
+    WHERE A.POSTING_TYPE NOT IN ('IP5','IP1','IP3','IP9', 'IP10', 'IP11', 'IP13', 'IP14', 'IP16',/* 'IP18',*/ 'IP22', 'IP24', 'IP26', 'IP27', 'IP28', 'IP31', 'SP3')
+          AND b.invoice_id not in ('129077','123757','857179','452769')
+--        AND A.line_ref IS NOT NULL
+          AND (B.PO_REF_NUMBER IS NULL OR B.ADV_INV = 'TRUE')
+          AND A.CURR_AMOUNT <> 0
