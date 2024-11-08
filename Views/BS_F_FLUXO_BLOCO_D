@@ -50,11 +50,5 @@ SELECT C.COMPANY,
     AND (A.POSTING_TYPE <> 'IP1')
     AND (A.SERIES_ID = 'SUPAY')
     AND C.MULTI_COMPANY_PAY_EXIST = 'FALSE'
-           --AND (B.FINE_CURR_AMOUNT IS NULL OR B.INTEREST_CURR_AMOUNT IS NULL)
-           AND (A.POSTING_TYPE NOT IN ('PP16','PP13','IP3', 'IP5', 'IP9', 'IP10', 'IP11', 'IP13', 'IP14', 'IP18', 'IP22', 'IP24', 'IP26', 'IP27', 'IP28', 'IP31', 'SP3', 'PP48', 'PP49', 'PP69', 'PP2','PP70'))
-           AND (EXISTS(SELECT 1
-                         FROM IFSLAF.CASH_TRANSACTION_CU_QRY Z 
-                        WHERE (A.COMPANY = Z.COMPANY)
-                          AND (A.SERIES_ID = Z.SERIES_ID)
-                          AND (A.PAYMENT_ID = Z.PAYMENT_ID)
-                          AND (B.VOUCHER_DATE = Z.VOUCHER_DATE)))
+    AND (A.POSTING_TYPE NOT IN ('PP16','PP13','IP3', 'IP5', 'IP9', 'IP10', 'IP11', 'IP13', 'IP14', 'IP18', 'IP22', 'IP24', 'IP26', 'IP27', 'IP28', 'IP31', 'SP3', 'PP48', 'PP49', 'PP69', 'PP2','PP70'))
+    and SIGN(c.DOM_AMOUNT) <> 0
