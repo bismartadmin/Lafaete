@@ -97,6 +97,9 @@ PROCEDURE RELEASE_ITEM_AGR(
 PROCEDURE CREATE_CUSTOMER_ORD_AGR(
   opportunity_no_ IN VARCHAR2 );
 
+PROCEDURE INSER_OV_RECAGRRE(
+  opportunity_no_ IN VARCHAR2 );
+
 PROCEDURE CREATE_COTACAO(
         opportunity_no_         IN VARCHAR2,
         probability_            IN VARCHAR2,
@@ -130,6 +133,9 @@ PROCEDURE CREATE_ORDER_CUST_COR(
 
 PROCEDURE CREATE_ORDER_CUST(
  opportunity_no_ IN VARCHAR2);
+
+PROCEDURE INSER_OV_COT(
+ opportunity_no_ in VARCHAR2);
 
 ---------------------------------------------------
 -------------------- FOUNDATION1 METHODS ------------------------------------
