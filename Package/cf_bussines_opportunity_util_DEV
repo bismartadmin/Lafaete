@@ -22,7 +22,6 @@ create or replace PACKAGE BODY cf_bussines_opportunity_util_api IS
             currency_code_          VARCHAR2(2000) := NULL;
             main_representative_id_ VARCHAR2(2000) := NULL;
             probability_            VARCHAR2(2000) := NULL;
-            service_period_         VARCHAR2(2000) := NULL;
 
 
 
@@ -32,11 +31,9 @@ create or replace PACKAGE BODY cf_bussines_opportunity_util_api IS
                     a.customer_id,
                     a.currency_code,
                     a.main_representative_id,
-                    a.probability,
-                    b.cf$_service_period
+                    a.probability
                 FROM
-                    BUSINESS_OPPORTUNITY a
-                    JOIN ifslaf.LAF_REQ_BUSINESS_OPPORT_SF_CLV b ON (a.opportunity_no = b.cf$_opportunity_no)
+                    business_opportunity a
                 WHERE
                         a.opportunity_no = opportunity_no_;
                     --AND a.objkey = rowkey_;
@@ -47,22 +44,17 @@ create or replace PACKAGE BODY cf_bussines_opportunity_util_api IS
                                             || '.', 'INFO');
             OPEN get_ot_data ;
 
-            fetch get_ot_data into opportunity_type_, customer_id_, currency_code_, main_representative_id_ ,probability_ ,service_period_;
+            fetch get_ot_data into opportunity_type_, customer_id_, currency_code_, main_representative_id_ ,probability_;
 
             close get_ot_data;
 
           opportunity_type_ := business_opportunity_api.get_opportunity_type(opportunity_no_);
-            IF (opportunity_type_ LIKE ( 'LOCACAO%' ) ) THEN 
-            --or (opportunity_type_ LIKE ('%SERVICOS') and service_period_ < 1) THEN
+            IF ( opportunity_type_ LIKE ( 'LOCACAO%' ) ) THEN 
                 transaction_sys.set_status_info('Oportunidade seguira para o Contrato recorrente.', 'INFO');
                 create_contrac_agr(opportunity_no_, customer_id_, currency_code_, main_representative_id_);
-
-           ELSIF  (opportunity_type_ LIKE ('VENDA%')) 
-               or (opportunity_type_ = ('EVENTOS'))  
-               or (opportunity_type_ = ('PRESTACAO DE SERVICOS'))THEN
+            ELSIF ( opportunity_type_ LIKE ('VENDA%')) or (opportunity_type_ = ('EVENTOS') ) THEN
                 transaction_sys.set_status_info('Oportunidade seguira para a Cotação de venda.', 'INFO');
                 create_cotacao(opportunity_no_, probability_ ,customer_id_, currency_code_, main_representative_id_);
-
             ELSE 
             RAISE_APPLICATION_ERROR(-20100, 'ERRO : '||opportunity_type_||'.');
             END IF;
@@ -358,6 +350,12 @@ IF (objstate_ = 'Released') then
   transaction_sys.set_status_info('Finalizando a CREATE_CUSTOMER_ORD_AGR', 'INFO');
 END IF;
 
+BEGIN
+ transaction_sys.set_status_info('Iniciando a INSER_OV_RECAGRRE', 'INFO');
+ INSER_OV_RECAGRRE(opportunity_no_);
+ transaction_sys.set_status_info('Finalizando a INSER_OV_RECAGRRE', 'INFO');
+END;
+
     END create_contrac_agr;
 
 PROCEDURE INSER_APR_CUSTO(opportunity_no_ in VARCHAR2) is
@@ -395,44 +393,49 @@ BEGIN
  transaction_sys.set_status_info('Foi inserido o Apr Custo', 'INFO');
 END INSER_APR_CUSTO;
 
-PROCEDURE INSER_FORM_PGTO(opportunity_no_ in VARCHAR2) is
+    PROCEDURE INSER_FORM_PGTO(opportunity_no_ in VARCHAR2) is
 
-   --opportunity_no_  VARCHAR2(32000) := client_sys.Get_Item_Value('opportunity_no',attr_);
-   forma_pagamento_  VARCHAR2(32000) := NULL;
+ --opportunity_no_  VARCHAR2(32000) := client_sys.Get_Item_Value('opportunity_no',attr_);
+ forma_pagamento_  VARCHAR2(32000) := NULL;
+
    -- p0 -> __lsResult
    p0_ VARCHAR2(32000) := NULL;
+
    -- p1 -> __sObjid
    p1_ VARCHAR2(32000) := '';
+
    -- p2 -> __g_Bind.s[0]
    p2_ VARCHAR2(32000) := NULL;
+
    -- p3 -> __lsAttr
    p3_ VARCHAR2(32000) := '';
+
    -- p4 -> __sAction
    p4_ VARCHAR2(32000) := 'DO';
 
 BEGIN
  Fnd_Session_Api.Set_Language('bp');
-   BEGIN
-      SELECT FORMA_PAG_CFP.ENCODE(B.CF$_LOCAL_PAYMENT_METH),
-             A.OBJID
-        INTO forma_pagamento_,
-             p1_
-        FROM IFSLAF.LAF_REQ_BUSINESS_OPPORT_SF_CLV B 
-       INNER JOIN IFSLAF.C_RECURRENT_AGREEMENT_CFV A ON ( B.CF$_OPPORTUNITY_NO = A.OPPORTUNITY_NO )
-       WHERE B.CF$_OPPORTUNITY_NO = opportunity_no_ FETCH FIRST ROW ONLY;
 
-   EXCEPTION 
-        WHEN NO_DATA_FOUND THEN 
-             forma_pagamento_ := NULL;
+  BEGIN
+        SELECT FORMA_PAG_CFP.Encode(b.CF$_LOCAL_PAYMENT_METH)
+         INTO forma_pagamento_
+          from ifslaf.LAF_REQ_BUSINESS_OPPORT_SF_CLV b 
+           where b.cf$_opportunity_no = opportunity_no_
+        fetch first row only;
+         exception when no_data_found 
+        then forma_pagamento_ := 'N';
+    END;
 
-        transaction_sys.set_status_info('Selecionando a Forma de Pagamento', 'INFO'); 
-   END;
-
-   p2_ := 'CF$_LOCAL_PAYMENT_METHOD_DB'||chr(31)||forma_pagamento_||chr(30);
-   IFSLAF.C_RECURRENT_AGREEMENT_CFP.Cf_Modify__(p0_ , p1_ , p2_ , p3_ , p4_ );
-
-   COMMIT;
-  transaction_sys.set_status_info('Foi inserido a Forma de Pagamento', 'INFO');
+    BEGIN
+    SELECT a.objid 
+  into p1_ 
+  FROM ifslaf.C_RECURRENT_AGREEMENT_CFV a
+  WHERE a.opportunity_no = opportunity_no_;
+    END;
+    p2_ := 'CF$_LOCAL_PAYMENT_METHOD_DB'||chr(31)||forma_pagamento_||chr(30);
+IFSLAF.C_RECURRENT_AGREEMENT_CFP.Cf_Modify__(p0_ , p1_ , p2_ , p3_ , p4_ );
+COMMIT;
+transaction_sys.set_status_info('Foi inserido a Forma de Pagamento', 'INFO');
 END INSER_FORM_PGTO;
 
 PROCEDURE INSER_SALESMAN_CODE (opportunity_no_ in VARCHAR2) IS 
@@ -441,40 +444,44 @@ PROCEDURE INSER_SALESMAN_CODE (opportunity_no_ in VARCHAR2) IS
   vendedor_        VARCHAR2(32000) := null;
    -- p0 -> __lsResult
    p0_ VARCHAR2(32000) := NULL;
+
    -- p1 -> __sObjid
    p1_ VARCHAR2(32000) := null;
+
    -- p2 -> __lsObjversion
    p2_ VARCHAR2(32000) := null;
+
    -- p3 -> __lsAttr
    p3_ VARCHAR2(32000) := null;
+
    -- p4 -> __sAction
    p4_ VARCHAR2(32000) := 'DO';
 
 BEGIN
+
  Fnd_Session_Api.Set_Language('bp');
-   BEGIN --Selecionando ID_VENDEDOR
-      SELECT A.CF$_SALESMAN_CODE, 
-             B.OBJID , 
-             B.OBJVERSION 
-        INTO vendedor_ ,
-             p1_ , 
-             p2_
-        FROM IFSLAF.LAF_REQ_BUSINESS_OPPORT_SF_CLV a 
-       INNER JOIN ifslaf.C_RECURRENT_AGREEMENT_CFV b ON ( A.CF$_OPPORTUNITY_NO = B.OPPORTUNITY_NO )
-       WHERE A.CF$_OPPORTUNITY_NO = opportunity_no_ FETCH FIRST ROW ONLY;
 
-   EXCEPTION 
-        WHEN NO_DATA_FOUND THEN 
-             vendedor_ := NULL;
-
-     transaction_sys.set_status_info('Selecionando ID_VENDEDOR: '||opportunity_no_|| '.','INFO');  
-   END;
-
-   p3_:= 'SALESMAN_CODE'||chr(31)||vendedor_||chr(30);
+    BEGIN --Selecionando ID_VENDEDOR
+    SELECT a.cf$_salesman_code
+     INTO vendedor_
+      FROM IFSLAF.LAF_REQ_BUSINESS_OPPORT_SF_CLV a 
+         WHERE a.cf$_opportunity_no = opportunity_no_
+      FETCH FIRST ROW ONLY;
+     EXCEPTION WHEN no_data_found 
+       then vendedor_ := NULL;
+       transaction_sys.set_status_info('Selecionando ID_VENDEDOR: '||opportunity_no_|| '.','INFO');
+    END;
+    BEGIN --Selecionando Objid , Objversion
+    SELECT b.objid , b.objversion 
+  into p1_ , p2_
+  FROM ifslaf.C_RECURRENT_AGREEMENT_CFV b
+  WHERE b.opportunity_no = opportunity_no_;
+  transaction_sys.set_status_info('Selecionando Objid , Objversion: '||opportunity_no_|| '.','INFO');
+    END;
+    p3_:= 'SALESMAN_CODE'||chr(31)||vendedor_||chr(30);
    IFSLAF.C_RECURRENT_AGREEMENT_API.MODIFY__( p0_ , p1_ , p2_ , p3_ , p4_ );
-
-   COMMIT;
-  transaction_sys.set_status_info('Vendedor Inserido: '||opportunity_no_||' Vendedor: '||vendedor_||'.','INFO');
+ COMMIT;
+ transaction_sys.set_status_info('Vendedor Inserido: '||opportunity_no_||' Vendedor: '||vendedor_||'.','INFO');
 END INSER_SALESMAN_CODE;
 
 PROCEDURE INSER_COND_PGTO (opportunity_no_ in VARCHAR2) IS 
@@ -483,40 +490,43 @@ PROCEDURE INSER_COND_PGTO (opportunity_no_ in VARCHAR2) IS
   condicaoPagamento_     VARCHAR2(32000) := null;
    -- p0 -> __lsResult
    p0_ VARCHAR2(32000) := NULL;
+
    -- p1 -> __sObjid
    p1_ VARCHAR2(32000) := NULL;
+
    -- p2 -> __lsObjversion
    p2_ VARCHAR2(32000) := NULL;
+
    -- p3 -> __lsAttr
    p3_ VARCHAR2(32000) := NULL;
+
    -- p4 -> __sAction
    p4_ VARCHAR2(32000) := 'DO';
 
 BEGIN
   Fnd_Session_Api.Set_Language('bp');
-   BEGIN --Selecionando ID_VENDEDOR
-      SELECT a.cf$_pay_term_id,
-             b.objid , 
-             b.objversion 
-        INTO condicaoPagamento_,
-             p1_ , 
-             p2_
-        FROM IFSLAF.LAF_REQ_BUSINESS_OPPORT_SF_CLV a 
-       INNER JOIN IFSLAF.C_RECURRENT_AGREEMENT_CFV b ON ( A.CF$_OPPORTUNITY_NO = B.OPPORTUNITY_NO )
-       WHERE A.CF$_OPPORTUNITY_NO = opportunity_no_ FETCH FIRST ROW ONLY;
 
-   EXCEPTION 
-       WHEN NO_DATA_FOUND then 
-            condicaoPagamento_ := NULL;
-
+     BEGIN --Selecionando ID_VENDEDOR
+    SELECT a.cf$_pay_term_id
+     INTO condicaoPagamento_
+      FROM IFSLAF.LAF_REQ_BUSINESS_OPPORT_SF_CLV a 
+         WHERE a.cf$_opportunity_no = opportunity_no_
+      FETCH FIRST ROW ONLY;
+     EXCEPTION WHEN no_data_found 
+       then condicaoPagamento_ := NULL;
        transaction_sys.set_status_info('Selecionando Condição de Pagamento: '||opportunity_no_|| '.','INFO');
-   END;
-
-   p3_ := 'PAY_TERM_ID'||chr(31)||condicaoPagamento_||chr(30);
+    END;
+    BEGIN --Selecionando Objid , Objversion
+    SELECT b.objid , b.objversion 
+  into p1_ , p2_
+  FROM ifslaf.C_RECURRENT_AGREEMENT_CFV b
+  WHERE b.opportunity_no = opportunity_no_;
+  transaction_sys.set_status_info('Selecionando Objid , Objversion: '||opportunity_no_|| '.','INFO');
+    END;
+    p3_ := 'PAY_TERM_ID'||chr(31)||condicaoPagamento_||chr(30);
    IFSLAF.C_RECURRENT_AGREEMENT_API.MODIFY__( p0_ , p1_ , p2_ , p3_ , p4_ );
-
-   COMMIT;
-  transaction_sys.set_status_info('Condição Pagamento Inserido: '||opportunity_no_||' Condiçao Pagamento: '||condicaoPagamento_||'.','INFO');
+ COMMIT;
+ transaction_sys.set_status_info('Condição Pagamento Inserido: '||opportunity_no_||' Condiçao Pagamento: '||condicaoPagamento_||'.','INFO');
 END INSER_COND_PGTO;
 
 PROCEDURE INSER_DATA_PLAN(opportunity_no_ IN VARCHAR2) IS
@@ -1158,6 +1168,75 @@ BEGIN
  transaction_sys.set_status_info('Ordem de Venda Criada','INFO');
 END CREATE_CUSTOMER_ORD_AGR;
 
+PROCEDURE INSER_OV_RECAGRRE(opportunity_no_ in VARCHAR2) IS 
+   --opportunity_no_  VARCHAR2(32000) := client_sys.Get_Item_Value('opportunity_no',attr_);
+   ordem_venda_or_     VARCHAR2(32000) := NULL;
+   ordem_venda_seo_    VARCHAR2(32000) := NULL;
+
+   -- Variáveis de saída
+   p0_ VARCHAR2(32000) := NULL;
+   p1_ VARCHAR2(32000) := NULL;
+   p2_ VARCHAR2(32000) := NULL;
+   p3_ VARCHAR2(32000) := NULL;
+   p4_ VARCHAR2(32000) := 'DO';
+
+   CURSOR inser_ov_recagrre IS
+
+     SELECT SUBTAB.opportunity_no,
+            SUBTAB.ORDEM_VENDA_OR,
+            SUBTAB.ORDEM_VENDA_SEO
+FROM (SELECT
+     A.CF$_OPPORTUNITY_NO  opportunity_no,
+
+     (SELECT b.DELIVERY_ORDER_NO 
+     FROM C_REC_AGREEMENT_ITEM b
+     WHERE b.OPPORTUNITY_NO = a.CF$_OPPORTUNITY_NO
+     and b.state = 'Ativo'
+     ORDER BY b.DELIVERY_ORDER_NO DESC -- Ordena pela coluna relevante
+     FETCH FIRST ROW ONLY) AS ORDEM_VENDA_OR,
+
+    (SELECT b.SERVICE_ORDER_NO 
+     FROM C_REC_AGREEMENT_ITEM b
+     WHERE b.OPPORTUNITY_NO = a.CF$_OPPORTUNITY_NO
+     and b.state = 'Ativo'
+     ORDER BY b.SERVICE_ORDER_NO DESC -- Ordena pela coluna relevante
+     FETCH FIRST ROW ONLY) AS ORDEM_VENDA_SEO
+
+     FROM LAF_REQ_BUSINESS_OPPORT_SF_CLV a) SUBTAB
+     WHERE SUBTAB.opportunity_no = opportunity_no_
+
+     group by SUBTAB.opportunity_no,
+              SUBTAB.ORDEM_VENDA_OR,
+              SUBTAB.ORDEM_VENDA_SEO;
+
+   -- Registro para armazenar cada linha retornada pelo cursor
+   rec inser_ov_recagrre%ROWTYPE;
+
+BEGIN
+   -- Configuração do idioma
+   Fnd_Session_Api.Set_Language('bp');
+
+   -- Abrir o cursor e processar as linhas
+   OPEN inser_ov_recagrre;
+   LOOP
+      FETCH inser_ov_recagrre INTO rec;
+      EXIT WHEN inser_ov_recagrre%NOTFOUND;
+
+      -- Atribuir valores retornados do cursor às variáveis
+      ordem_venda_or_  := rec.ORDEM_VENDA_OR;
+      ordem_venda_seo_ := rec.ORDEM_VENDA_SEO;
+
+      -- Chamando o procedimento com os valores apropriados
+     p3_ := 'CF$_ORDEM_VENDA_OV'     ||chr(31)||ordem_venda_or_ ||chr(30)||
+            'CF$_ORDEM_VENDA_SEO'    ||chr(31)||ordem_venda_seo_||chr(30)||
+            'CF$_NUMERO_OPORTUNIDADE'||chr(31)||opportunity_no_ ||chr(30);
+      IFSLAF.LAF_ORDES_VENDAS_S_F_CLP.NEW__(p0_, p1_, p2_, p3_, p4_);
+   END LOOP;
+
+   -- Fechar o cursor
+   CLOSE inser_ov_recagrre;
+END INSER_OV_RECAGRRE;
+
 -------------------- FINAL PROCEDURE LOCACAO ----------------------------------
 
                     ------------------------- create_cotacao(opportunity_no_, probability_ ,customer_id_, currency_code_, main_representative_id_);
@@ -1275,7 +1354,6 @@ fetch first row only;
  transaction_sys.set_status_info('Finalizando a release_order_quotation', 'INFO');
  end;
 
-
  BEGIN 
   SELECT B.cf$_lose_reason_id
    INTO perda2_
@@ -1293,7 +1371,6 @@ IF (perda2_ IS NOT NULL ) THEN
  transaction_sys.set_status_info('Finalizando a lose_cotacao', 'INFO');
  END;
  END IF;
-
 
 BEGIN
 FOR r in ( SELECT B.CF$_OPPORTUNITY_NO N_OPORTUNIDADE, 
@@ -1338,10 +1415,16 @@ FOR r in ( SELECT B.CF$_OPPORTUNITY_NO N_OPORTUNIDADE,
  cont_estoc  := 0;
 END;
 
+BEGIN
+ transaction_sys.set_status_info('Iniciando a inser_ov_cot', 'INFO');
+ INSER_OV_COT(opportunity_no_);
+ transaction_sys.set_status_info('Finalizando a inser_ov_cot', 'INFO');
+END;
+
 END CREATE_COTACAO;
 
 
-
+-- Evento LAF_INT_SF_021
 PROCEDURE INSER_REQUI_ORD_VEND(opportunity_no_ IN VARCHAR2) IS
 
   laf_desmob_          VARCHAR2(32000) := NULL;
@@ -1390,7 +1473,7 @@ commit;
 END INSER_REQUI_ORD_VEND;
 
 
-
+-- Evento LAF_INT_SF_021
 PROCEDURE INSER_DATA_PLAN_QUOTAT(opportunity_no_ IN VARCHAR2) IS
 
    --opportunity_no_  VARCHAR2(32000) := client_sys.Get_Item_Value('opportunity_no',attr_);
@@ -1496,7 +1579,7 @@ transaction_sys.set_status_info('Condição De Pagamento Inserido: '||cond_pagam
 END INSER_SALES_COTAC;
 
 
-
+-- Evento LAF_INT_SF_019
 PROCEDURE INSER_TAREF_CASO_2(opportunity_no_ IN VARCHAR2) IS
 
     case_id_            NUMBER          := 0;
@@ -1705,7 +1788,8 @@ BEGIN
       select a.objid , a.objversion
        into p1_ , p2_ 
       from ifslaf.ORDER_QUOTATION a
-      where a.business_opportunity_no = opportunity_no_;
+      where a.business_opportunity_no = opportunity_no_
+      and a.contract <> '14';
       exception 
      when no_data_found then
      RAISE_APPLICATION_ERROR(-20100,'Não foi possivel liberar oportunidade , favor verificar requisitos obrigatorios');
@@ -1860,6 +1944,74 @@ BEGIN
   IFSLAF.Order_Quotation_API.C_Create_Order(p0_ , p1_ , p2_ , p3_ , p4_ , p5_ );
  COMMIT;
 END CREATE_ORDER_CUST;
+
+PROCEDURE INSER_OV_COT(opportunity_no_ in VARCHAR2) IS 
+   --opportunity_no_  VARCHAR2(32000) := client_sys.Get_Item_Value('opportunity_no',attr_);
+   ordem_venda_ov_     VARCHAR2(32000) := NULL;
+   ordem_venda_seo_    VARCHAR2(32000) := NULL;
+
+
+   p0_ VARCHAR2(32000) := NULL;
+   p1_ VARCHAR2(32000) := NULL;
+   p2_ VARCHAR2(32000) := NULL;
+   p3_ VARCHAR2(32000) := NULL;
+   p4_ VARCHAR2(32000) := 'DO';
+
+   CURSOR inser_ov_cotac IS
+SELECT  SUBTAB.opportunity_no,
+        SUBTAB.ORDEM_VENDA_OV,
+        SUBTAB.ORDEM_VENDA_SEO
+        FROM
+
+         (SELECT
+         A.CF$_OPPORTUNITY_NO  opportunity_no,
+
+         (SELECT b.ORDER_NO 
+          FROM CUSTOMER_ORDER b
+          WHERE b.QUOTATION_NO = a.CF$_QUOTATION_NO
+            AND b.ORDER_ID = 'OV'
+          FETCH FIRST ROW ONLY) AS ORDEM_VENDA_OV,
+
+         (SELECT b.ORDER_NO 
+          FROM CUSTOMER_ORDER b
+          WHERE b.QUOTATION_NO = a.CF$_QUOTATION_NO
+            AND b.ORDER_ID = 'SEO'
+          FETCH FIRST ROW ONLY) AS ORDEM_VENDA_SEO
+
+      FROM LAF_REQ_BUSINESS_OPPORT_SF_CLV a) SUBTAB
+     WHERE SUBTAB.opportunity_no = opportunity_no_
+
+     group by SUBTAB.opportunity_no,
+              SUBTAB.ORDEM_VENDA_OV,
+              SUBTAB.ORDEM_VENDA_SEO;
+
+   -- Registro para armazenar cada linha retornada pelo cursor
+   rec inser_ov_cotac%ROWTYPE;
+
+BEGIN
+   -- Configuração do idioma
+   Fnd_Session_Api.Set_Language('bp');
+
+   -- Abrir o cursor e processar as linhas
+   OPEN inser_ov_cotac;
+   LOOP
+      FETCH inser_ov_cotac INTO rec;
+      EXIT WHEN inser_ov_cotac%NOTFOUND;
+
+      -- Atribuir valores retornados do cursor às variáveis
+      ordem_venda_ov_  := rec.ORDEM_VENDA_OV;
+      ordem_venda_seo_ := rec.ORDEM_VENDA_SEO;
+
+      -- Chamando o procedimento com os valores apropriados
+     p3_ := 'CF$_ORDEM_VENDA_OV'     ||chr(31)||ordem_venda_ov_ ||chr(30)||
+            'CF$_ORDEM_VENDA_SEO'    ||chr(31)||ordem_venda_seo_||chr(30)||
+            'CF$_NUMERO_OPORTUNIDADE'||chr(31)||opportunity_no_ ||chr(30);
+      IFSLAF.LAF_ORDES_VENDAS_S_F_CLP.NEW__(p0_, p1_, p2_, p3_, p4_);
+   END LOOP;
+
+   -- Fechar o cursor
+   CLOSE inser_ov_cotac;
+END INSER_OV_COT;
 
 -----------------------------------------------------------------------------
 -------------------- FOUNDATION1 METHODS ------------------------------------
