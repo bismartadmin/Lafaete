@@ -87,10 +87,59 @@ SELECT 'FOLHA CONTAB'  TIPO_MOVIMENTO,
                END) AS ID_CODE_I_NEGOCIO,
                B.VALOR_CONTAB,
                B.OBS
-               
 
 FROM IFSINFO.ERP_F_LANCTO_CONTAB B
 
 WHERE B.ID_TIPO_LANCTO IN ('FP','MFP') AND SUBSTR(b.ID_CODE_A_CONTA,0,1) NOT IN ('1','2')
 AND B.ID_CODE_A_CONTA NOT IN ('4120100031','4120100032','4120100033')
 AND to_date(to_char(B.DATA_LANCTO,'DD/MM/YYYY'),'DD/MM/YYYY') >= to_DATE('01/12/2022','DD/MM/YYYY')
+
+UNION ALL
+
+SELECT 'FOLHA CONTAB'  TIPO_MOVIMENTO,
+       C.TIPO_CONTA_AJUST,
+       C.N_LANCTO,
+       C.DATA_LANCTO,
+       C.ID_EMPRESA,
+       C.ID_TIPO_LANCTO,
+       C.DESC_TIPO_LANCTO,
+       C.ID_CODE_A_CONTA,
+       C.DESC_CODE_A_CONTA,
+       C.DESC_GRUPO_CONTA_CONTAB,
+       C.ID_CODE_B_CR,
+       C.ID_CODE_C_SITE,
+       C.ID_CODE_D_NATUREZA,
+       C.ID_CODE_F_PROJETO,
+       C.ID_CODE_G_LINHA,
+       C.ID_CODE_H_APR_CUSTO,
+       COALESCE(C.ID_CODE_I_NEGOCIO,CASE NVL(C.ID_CODE_H_APR_CUSTO, ' ')
+                    WHEN '03' THEN CASE C.ID_CODE_B_CR WHEN '0025' THEN '03' ELSE '07' END
+                    WHEN '09' THEN CASE C.ID_CODE_B_CR WHEN '0025' THEN '03' WHEN '0026' THEN '07'WHEN '0027' THEN '07'ELSE '01' END
+                    WHEN '10' THEN CASE C.ID_CODE_B_CR WHEN '0025' THEN '03' WHEN '0026' THEN '07'WHEN '0027' THEN '07'ELSE '01' END
+                    WHEN '11' THEN CASE C.ID_CODE_B_CR WHEN '0025' THEN '03' WHEN '0026' THEN '07'WHEN '0027' THEN '07'ELSE '01' END
+                    WHEN '12' THEN '05'
+                    WHEN '14' THEN '04'
+                    WHEN '18' THEN '07'
+                    WHEN '19' THEN '07'
+                    WHEN '24' THEN '07'
+                    WHEN '26' THEN '07'
+                    WHEN '28' THEN '05'
+                    WHEN '37' THEN '07'
+                    WHEN '38' THEN '07'
+                    WHEN '40' THEN '09'
+                    WHEN '41' THEN '08'
+                    WHEN '42' THEN '07'
+                    WHEN '43' THEN '07'
+                    WHEN '44' THEN '08'
+                    WHEN '45' THEN '02'
+                    ELSE CASE C.ID_CODE_B_CR WHEN '0002' THEN '01' END
+               END) AS ID_CODE_I_NEGOCIO,
+               C.VALOR_CONTAB,
+               C.OBS
+
+FROM IFSINFO.ERP_F_LANCTO_CONTAB C
+
+WHERE C.ID_PARCERIO = '00360305 MULTA FGTS'
+AND C.ID_CODE_C_SITE IN ('41','44','48','54','58')
+AND C.ID_TIPO_LANCTO <> 'ENC'
+AND (C.GRUPO_CONTA_CONTAB = '41201' or C.GRUPO_CONTA_CONTAB = '51102')
