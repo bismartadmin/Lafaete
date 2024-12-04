@@ -1169,11 +1169,13 @@ BEGIN
 END CREATE_CUSTOMER_ORD_AGR;
 
 PROCEDURE INSER_OV_RECAGRRE(opportunity_no_ in VARCHAR2) IS 
-   --opportunity_no_  VARCHAR2(32000) := client_sys.Get_Item_Value('opportunity_no',attr_);
+
+   --opportunity_no_    VARCHAR2(32000) := client_sys.Get_Item_Value('opportunity_no',attr_);
    ordem_venda_or_     VARCHAR2(32000) := NULL;
    ordem_venda_seo_    VARCHAR2(32000) := NULL;
+   n_linha_            VARCHAR2(32000) := NULL;
 
-   -- Variáveis de saída
+
    p0_ VARCHAR2(32000) := NULL;
    p1_ VARCHAR2(32000) := NULL;
    p2_ VARCHAR2(32000) := NULL;
@@ -1182,58 +1184,76 @@ PROCEDURE INSER_OV_RECAGRRE(opportunity_no_ in VARCHAR2) IS
 
    CURSOR inser_ov_recagrre IS
 
-     SELECT SUBTAB.opportunity_no,
-            SUBTAB.ORDEM_VENDA_OR,
-            SUBTAB.ORDEM_VENDA_SEO
+SELECT SUBTAB.opportunity_no,
+       SUBTAB.N_LINHA,
+       SUBTAB.ORDEM_VENDA_OR,
+       SUBTAB.ORDEM_VENDA_SEO
 FROM (SELECT
      A.CF$_OPPORTUNITY_NO  opportunity_no,
+
+     (SELECT b.LINE_NO 
+     FROM C_REC_AGREEMENT_ITEM b
+     WHERE b.OPPORTUNITY_NO = a.CF$_OPPORTUNITY_NO
+     and b.state = 'Ativo'
+     ORDER BY b.DELIVERY_ORDER_NO DESC
+     FETCH FIRST ROW ONLY) AS N_LINHA,
 
      (SELECT b.DELIVERY_ORDER_NO 
      FROM C_REC_AGREEMENT_ITEM b
      WHERE b.OPPORTUNITY_NO = a.CF$_OPPORTUNITY_NO
      and b.state = 'Ativo'
-     ORDER BY b.DELIVERY_ORDER_NO DESC -- Ordena pela coluna relevante
+     ORDER BY b.DELIVERY_ORDER_NO DESC 
      FETCH FIRST ROW ONLY) AS ORDEM_VENDA_OR,
 
     (SELECT b.SERVICE_ORDER_NO 
      FROM C_REC_AGREEMENT_ITEM b
      WHERE b.OPPORTUNITY_NO = a.CF$_OPPORTUNITY_NO
      and b.state = 'Ativo'
-     ORDER BY b.SERVICE_ORDER_NO DESC -- Ordena pela coluna relevante
+     ORDER BY b.SERVICE_ORDER_NO DESC 
      FETCH FIRST ROW ONLY) AS ORDEM_VENDA_SEO
 
      FROM LAF_REQ_BUSINESS_OPPORT_SF_CLV a) SUBTAB
      WHERE SUBTAB.opportunity_no = opportunity_no_
 
      group by SUBTAB.opportunity_no,
+              SUBTAB.N_LINHA,
               SUBTAB.ORDEM_VENDA_OR,
               SUBTAB.ORDEM_VENDA_SEO;
 
-   -- Registro para armazenar cada linha retornada pelo cursor
+
    rec inser_ov_recagrre%ROWTYPE;
 
 BEGIN
-   -- Configuração do idioma
+
    Fnd_Session_Api.Set_Language('bp');
 
-   -- Abrir o cursor e processar as linhas
+
    OPEN inser_ov_recagrre;
    LOOP
       FETCH inser_ov_recagrre INTO rec;
       EXIT WHEN inser_ov_recagrre%NOTFOUND;
 
-      -- Atribuir valores retornados do cursor às variáveis
+
       ordem_venda_or_  := rec.ORDEM_VENDA_OR;
       ordem_venda_seo_ := rec.ORDEM_VENDA_SEO;
+      n_linha_         := rec.N_LINHA;
 
-      -- Chamando o procedimento com os valores apropriados
+    IF rec.N_LINHA = '1' then
+
      p3_ := 'CF$_ORDEM_VENDA_OV'     ||chr(31)||ordem_venda_or_ ||chr(30)||
             'CF$_ORDEM_VENDA_SEO'    ||chr(31)||ordem_venda_seo_||chr(30)||
             'CF$_NUMERO_OPORTUNIDADE'||chr(31)||opportunity_no_ ||chr(30);
       IFSLAF.LAF_ORDES_VENDAS_S_F_CLP.NEW__(p0_, p1_, p2_, p3_, p4_);
+
+     ELSIF rec.N_LINHA <> '1' THEN 
+    p3_ := 'CF$_ORDEM_VENDA_OV_OR_ADTV'||chr(31)||ordem_venda_or_ ||chr(30)||
+           'CF$_ORDEM_VENDA_SEO_ADTV'  ||chr(31)||ordem_venda_seo_||chr(30)||
+           'CF$_NUMERO_OPORTUNIDADE'   ||chr(31)||opportunity_no_ ||chr(30);
+      IFSLAF.LAF_ORDES_VENDAS_S_F_CLP.NEW__(p0_, p1_, p2_, p3_, p4_);
+
+      END IF;
    END LOOP;
 
-   -- Fechar o cursor
    CLOSE inser_ov_recagrre;
 END INSER_OV_RECAGRRE;
 
