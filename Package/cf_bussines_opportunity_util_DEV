@@ -913,7 +913,7 @@ IF cra_cursor_.CF$_catalog_no like 'EST%' THEN
            'QTY_NEGOTIATED'     ||chr(31)||cra_cursor_.CF$_qty_negotiated      ||chr(30)||
            'RENTAL_PRICE'       ||chr(31)||cra_cursor_.CF$_SALE_UNIT_PRICE     ||chr(30)||
            'HOUR_VALUE'         ||chr(31)||cra_cursor_.CF$_VALOR_HORA_VARIAVEL ||chr(30)||
-           'AGREEMENT_GUARANTEE'||chr(31)||cra_cursor_.CF$_GARANTIA_CONTRATUAL ||chr(30)||
+           'AGREEMENT_GUARANTEE'||chr(31)||CASE WHEN cra_cursor_.CF$_GARANTIA_CONTRATUAL = '1' THEN NULL ELSE cra_cursor_.CF$_GARANTIA_CONTRATUAL END ||chr(30)||
            'RENTAL_PERIOD'      ||chr(31)||cra_cursor_.CF$_rental_period       ||chr(30);
     IFSLAF.C_REC_AGREEMENT_ITEM_PROD_API.NEW__( p0_ , p1_ , p2_ , p3_ , p4_ );
     COMMIT;
@@ -924,7 +924,7 @@ ELSIF cra_cursor_.CF$_catalog_no like 'SER%' THEN
            'CATALOG_NO'         ||chr(31)||cra_cursor_.CF$_catalog_no          ||chr(30)||
            'QTY_NEGOTIATED'     ||chr(31)||cra_cursor_.CF$_qty_negotiated      ||chr(30)||
            'SERVICE_HOUR_PRICE' ||chr(31)||cra_cursor_.CF$_service_hour_price  ||chr(30)||
-           'AGREEMENT_GUARANTEE'||chr(31)||cra_cursor_.CF$_GARANTIA_CONTRATUAL ||chr(30)||
+           'AGREEMENT_GUARANTEE'||chr(31)||CASE WHEN cra_cursor_.CF$_GARANTIA_CONTRATUAL = '1' THEN NULL ELSE cra_cursor_.CF$_GARANTIA_CONTRATUAL END ||chr(30)||
            'SERVICE_PERIOD'     ||chr(31)||cra_cursor_.CF$_service_period      ||chr(30)||
            'CF$APPROVED_CLOSED_SHIP_DB' ||chr(31)||CASE cra_cursor_.CF$_APPROVED_CLOSED_SH_DB when '0' then 'FALSE' ELSE 'TRUE' END||chr(30)||
            'OPEN_FREIGHT_DB'    ||chr(31)||CASE cra_cursor_.CF$_open_freight_db  when '0' then 'FALSE' ELSE 'TRUE' END||chr(30);
@@ -1195,21 +1195,21 @@ FROM (SELECT
      FROM C_REC_AGREEMENT_ITEM b
      WHERE b.OPPORTUNITY_NO = a.CF$_OPPORTUNITY_NO
      and b.state = 'Ativo'
-     ORDER BY b.DELIVERY_ORDER_NO DESC
+     ORDER BY b.LINE_NO DESC
      FETCH FIRST ROW ONLY) AS N_LINHA,
 
      (SELECT b.DELIVERY_ORDER_NO 
      FROM C_REC_AGREEMENT_ITEM b
      WHERE b.OPPORTUNITY_NO = a.CF$_OPPORTUNITY_NO
      and b.state = 'Ativo'
-     ORDER BY b.DELIVERY_ORDER_NO DESC 
+     ORDER BY b.LINE_NO DESC 
      FETCH FIRST ROW ONLY) AS ORDEM_VENDA_OR,
 
     (SELECT b.SERVICE_ORDER_NO 
      FROM C_REC_AGREEMENT_ITEM b
      WHERE b.OPPORTUNITY_NO = a.CF$_OPPORTUNITY_NO
      and b.state = 'Ativo'
-     ORDER BY b.SERVICE_ORDER_NO DESC 
+     ORDER BY b.LINE_NO DESC 
      FETCH FIRST ROW ONLY) AS ORDEM_VENDA_SEO
 
      FROM LAF_REQ_BUSINESS_OPPORT_SF_CLV a) SUBTAB
