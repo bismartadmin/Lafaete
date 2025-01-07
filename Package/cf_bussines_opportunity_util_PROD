@@ -1,0 +1,152 @@
+create or replace PACKAGE cf_bussines_opportunity_util_api IS
+
+module_                   CONSTANT VARCHAR2(6)      := 'CRM';
+lu_name_                  CONSTANT VARCHAR2(30)     := 'BusinessOpportunity';
+lu_type_                  CONSTANT VARCHAR2(30)     := 'EntityWithState';
+
+-----------------------------------------------------------------------------
+-------------------- PUBLIC DECLARATIONS ------------------------------------
+-----------------------------------------------------------------------------
+
+
+-----------------------------------------------------------------------------
+-------------------- LU SPECIFIC PUBLIC METHODS -----------------------------
+-----------------------------------------------------------------------------
+-- SET_CONFIRMED
+-- CREATE_CONTRAC_AGR
+-- INSER_APR_CUSTO
+-- INSER_FORM_PGTO
+-- INSER_SALESMAN_CODE
+-- INSER_COND_PGTO
+-- INSER_DATA_PLAN
+-- INSER_MOB_DESMOB
+-- INSER_MOB_DESMOB_MOD
+-- INSER_MONT_DESMONT_MOD
+-- INSER_INFO_AGGR_MAQ
+-- INSER_INFO_CONTRACT
+-- INSER_MAT
+-- INSER_TAREF_CASO
+-- LOSE_OPPORTUNITY
+-- RELEASE_ITEM_AGR
+-- CREATE_CUSTOMER_ORD_AGR
+-- INSER_OV_RECAGRRE
+--
+-- CREATE_COTACAO
+-- INSER_REQUI_ORD_VEND
+-- INSER_DATA_PLAN_QUOTAT
+-- INSER_SALES_COTA
+-- INSER_TAREF_CASO_2
+-- INSER_MAT_QUOT
+-- RELEASE_ORDER_QUOTATION
+-- LOSE_COTACAO
+-- CREATE_ORDER_CUST_COR
+-- CREATE_ORDER_CUST
+-- INSER_OV_COT
+
+-----------------------------------------------------------------------------
+
+PROCEDURE set_confirmed (
+   attr_       IN VARCHAR2 );
+
+PROCEDURE create_contrac_agr(
+   opportunity_no_ IN VARCHAR2 , 
+   customer_id_    IN VARCHAR2 , 
+   currency_code_  IN VARCHAR2 , 
+   main_representative_id_ IN VARCHAR2 );
+
+PROCEDURE INSER_APR_CUSTO(
+  opportunity_no_ in VARCHAR2);
+
+PROCEDURE INSER_FORM_PGTO(
+   opportunity_no_ in VARCHAR2 );
+
+PROCEDURE INSER_SALESMAN_CODE (
+  opportunity_no_ in VARCHAR2); 
+
+PROCEDURE INSER_COND_PGTO(
+  opportunity_no_ in VARCHAR2);
+
+PROCEDURE INSER_DATA_PLAN(
+   opportunity_no_ IN VARCHAR2);
+
+PROCEDURE INSER_MOB_DESMOB(
+   opportunity_no_ IN VARCHAR2);
+
+PROCEDURE INSER_MOB_DESMOB_MOD(
+   opportunity_no_ IN VARCHAR2);
+
+PROCEDURE INSER_MONT_DESMONT_MOD(
+  opportunity_no_ IN VARCHAR2);
+
+PROCEDURE INSER_INFO_AGGR_MAQ (
+  opportunity_no_ in varchar2);
+
+PROCEDURE INSER_INFO_CONTRACT (
+  opportunity_no_ in VARCHAR2);
+
+PROCEDURE INSER_MAT(
+  opportunity_no_ in VARCHAR2);
+  --line_no_ in VARCHAR2);
+
+PROCEDURE INSER_TAREF_CASO(
+  opportunity_no_ IN VARCHAR2);
+
+PROCEDURE LOSE_OPPORTUNITY(
+  opportunity_no_ in VARCHAR2);
+
+PROCEDURE RELEASE_ITEM_AGR(
+  opportunity_no_ IN VARCHAR2);
+
+PROCEDURE CREATE_CUSTOMER_ORD_AGR(
+  opportunity_no_ IN VARCHAR2 );
+
+PROCEDURE INSER_OV_RECAGRRE(
+  opportunity_no_ IN VARCHAR2 );
+
+PROCEDURE CREATE_COTACAO(
+        opportunity_no_         IN VARCHAR2,
+        probability_            IN VARCHAR2,
+        customer_id_            IN VARCHAR2,
+        currency_code_          IN VARCHAR2,
+        main_representative_id_ IN VARCHAR2);
+
+PROCEDURE INSER_REQUI_ORD_VEND(
+ opportunity_no_ IN VARCHAR2);
+
+PROCEDURE INSER_DATA_PLAN_QUOTAT(
+ opportunity_no_ IN VARCHAR2);
+
+PROCEDURE INSER_SALES_COTAC(
+ opportunity_no_ in VARCHAR2);
+
+PROCEDURE INSER_TAREF_CASO_2(
+ opportunity_no_ IN VARCHAR2);
+
+PROCEDURE INSER_MAT_QUOT(
+opportunity_no_  IN VARCHAR2);
+
+PROCEDURE RELEASE_ORDER_QUOTATION(
+ opportunity_no_ IN VARCHAR2);
+
+PROCEDURE LOSE_COTACAO(
+ opportunity_no_ in VARCHAR2);
+
+PROCEDURE CREATE_ORDER_CUST_COR(
+  opportunity_no_ in VARCHAR2);
+
+PROCEDURE CREATE_ORDER_CUST(
+ opportunity_no_ IN VARCHAR2);
+
+PROCEDURE INSER_OV_COT(
+ opportunity_no_ in VARCHAR2);
+
+---------------------------------------------------
+-------------------- FOUNDATION1 METHODS ------------------------------------
+-----------------------------------------------------------------------------
+-- Init
+--   Framework method that initializes this package.
+-----------------------------------------------------------------------------
+
+--@PoReadOnly(Init)
+
+END cf_bussines_opportunity_util_api;
