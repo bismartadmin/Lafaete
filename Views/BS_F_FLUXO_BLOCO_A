@@ -13,6 +13,7 @@ SELECT A.COMPANY,
                B.INSTALLMENT_ID,
                IFSLAF.PAYMENT_PLAN_API.GET_C_INVOICE_TYPE_ID(D.COMPANY, D.INVOICE_ID, D.INSTALLMENT_ID) AS TIPO_TITULO,
                D.LEDGER_DATE,
+               
                D.C_DUE_DATE_ORG,
                D.DUE_DATE,
                B.IDENTITY,
