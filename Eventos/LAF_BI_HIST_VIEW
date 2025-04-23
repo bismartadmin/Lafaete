@@ -8,18 +8,27 @@ DECLARE
    p3_ VARCHAR2(32000) := NULL;
    -- p4 -> __sAction
    p4_ VARCHAR2(32000) := 'DO';
+   dt_historic_ VARCHAR2(100) := NULL;
+   dt_fim_ult_atuali VARCHAR2(100) := NULL;
+   dt_prox_atuali VARCHAR2(100) := NULL;
+   dt_inic_ultim_atuali VARCHAR2(100) := NULL;
 BEGIN
-              FOR r in (SELECT * FROM IFSINFO.ERP_F_CONTROLE_VIEWS WHERE HORARIO_ATUALIZACAO IS NOT NULL AND INICIO_ULTIMA_ATUALIZACAO IS NOT NULL) 
-                    LOOP  
+              FOR r in (SELECT * FROM IFSINFO.ERP_F_CONTROLE_VIEWS WHERE TIPO_VIEW = 'Bi Smart') 
+                    LOOP 
+                       dt_historic_ := TO_CHAR(SYSDATE, 'YYYY-MM-DD-HH24.MI.SS');
+                       dt_fim_ult_atuali := TO_CHAR(r.FIM_ULTIMA_ATUALIZACAO, 'YYYY-MM-DD-HH24.MI.SS');
+                       dt_prox_atuali := TO_CHAR(r.PROXIMA_ATUALIZACAO, 'YYYY-MM-DD-HH24.MI.SS');
+                       dt_inic_ultim_atuali := TO_CHAR(r.INICIO_ULTIMA_ATUALIZACAO, 'YYYY-MM-DD-HH24.MI.SS');
+                    
                         p3_ :=  'CF$_STATUS_MATERIALIZACAO' ||chr(31)||r.STATUS_MATERIALIZACAO||chr(30)||
                                 'CF$_TIPO_ATUALIZACAO'      ||chr(31)||r.TIPO_ATUALIZACAO||chr(30)||
                                 'CF$_TIPO_VIEW'             ||chr(31)||r.TIPO_VIEW||chr(30)||
                                 'CF$_DESC_VIEW'                  ||chr(31)||r.DESC_VIEW||chr(30)||
-                                'CF$_DATA_HISTORICO'        ||chr(31)||TO_CHAR(SYSDATE, 'YYYY-MM-DD-HH.MM.SS')||chr(30)||
-                                'CF$_FIM_ULTIMA_ATUALIZACAO'||chr(31)||TO_CHAR(r.FIM_ULTIMA_ATUALIZACAO, 'YYYY-MM-DD-HH.MM.SS')||chr(30)||
-                                'CF$_PROXIMA_ATUALIZACAO'   ||chr(31)||TO_CHAR(r.PROXIMA_ATUALIZACAO, 'YYYY-MM-DD-HH.MM.SS')||chr(30)||
+                                'CF$_DATA_HISTORICO'        ||chr(31)||dt_historic_||chr(30)||
+                                'CF$_FIM_ULTIMA_ATUALIZACAO'||chr(31)||dt_fim_ult_atuali||chr(30)||
+                                'CF$_PROXIMA_ATUALIZACAO'   ||chr(31)||dt_prox_atuali||chr(30)||
                                 'CF$_HORARIO_ATUALIZACAO'   ||chr(31)||r.HORARIO_ATUALIZACAO||chr(30)||
-                                'CF$_INICIO_ULTIMA_ATUALIZA'||chr(31)||TO_CHAR(r.INICIO_ULTIMA_ATUALIZACAO, 'YYYY-MM-DD-HH.MM.SS')||chr(30);                         
+                                'CF$_INICIO_ULTIMA_ATUALIZA'||chr(31)||dt_inic_ultim_atuali||chr(30);                         
                         IFSLAF.Log_SYS.Init_Debug_Session_('bp');
                         IFSLAF.LAF_CONTROLE_VIEW_CLP.NEW__( p0_ , p1_ , p2_ , p3_ , p4_ ); 
                    END LOOP; 
