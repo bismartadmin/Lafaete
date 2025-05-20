@@ -24,7 +24,8 @@ SELECT OVE.SALESMAN_CODE                                                        
              (SELECT MIN (b.reg_date) FROM IFSLAF.WORK_ORDER B WHERE B.CUST_ORDER_NO = OVE.ORDER_NO))
           ELSE (SELECT MIN (C.FIRST_ACTUAL_SHIP_DATE) FROM IFSLAF.CUSTOMER_ORDER_LINE c WHERE C.ORDER_NO = OVE.ORDER_NO) END ) IS NULL THEN 'Não' ELSE 'Sim' END MOBILIZADO,
        OVE.CODE_I                                                                                                                                                ID_CODE_I,
-       IFSLAF.code_i_api.Get_Description(company,code_i)                                                                                                         DESC_CODE_I
+       IFSLAF.code_i_api.Get_Description(company,code_i)                                                                                                         DESC_CODE_I,
+       NVL(OVE.CODE_H, OVE.CONTRACT) APR_CUSTO
           
   FROM IFSLAF.CUSTOMER_ORDER_JOIN_CFV OVE
  WHERE OVE.OBJSTATE <> 'Cancelled'
