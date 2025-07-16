@@ -3,7 +3,10 @@ WITH SUBTAB AS (SELECT NF.FISCAL_NOTE_ID, BCO.ORDER_NO, BCO.ID, NF.FISCAL_NOTE_N
                 JOIN IFSLAF.FISCAL_NOTE   NF              ON NF.C_FIRST_ORDER_NO = BCO.ORDER_NO --AND BCO.ID = 1
                 )
 
-    SELECT  IFSLAF.PERSON_INFO_API.Get_Name(IFSLAF.C_REC_AGREEMENT_INFO_API.Get_Agreement_Manager(CR.OPPORTUNITY_NO,CR.AGREEMENT_ID))                               GESTOR_CONTRATO, CR.AGREEMENT_ID,
+    SELECT  IFSLAF.PERSON_INFO_API.Get_Name(IFSLAF.C_REC_AGREEMENT_INFO_API.Get_Agreement_Manager(CR.OPPORTUNITY_NO,CR.AGREEMENT_ID))                               GESTOR_CONTRATO,
+            CR.SALESMAN_CODE ID_VENDEDOR,
+            IFSLAF.SALES_PART_SALESMAN_API.GET_NAME(CR.SALESMAN_CODE) AS VENDEDOR,
+            CR.AGREEMENT_ID,
             (TRUNC(MB.END_MEASUREMENT_DATE) + 1)                                                                                                                    PERIODO_INI_MED, 
             IFSLAF.C_REC_AGREEMENT_INFO_API.Get_Billing_Cutoff_Date(CR.OPPORTUNITY_NO,CR.AGREEMENT_ID)                                                              PERIODO_FINAL_MED,
             To_Char(MB.END_MEASUREMENT_DATE,'MM')                                                                                                                   MES_MEDICAO,
@@ -36,5 +39,5 @@ WITH SUBTAB AS (SELECT NF.FISCAL_NOTE_ID, BCO.ORDER_NO, BCO.ID, NF.FISCAL_NOTE_N
      LEFT JOIN IFSLAF.C_BULLETIN_CUSTOMER_ORDER BCO ON BCO.MB_ID = MB.MB_ID
      LEFT JOIN SUBTAB   NF                          ON NF.ORDER_NO = BCO.ORDER_NO AND NF.LINE_NO = BCO.LINE_NO AND NF.REL_NO = BCO.REL_NO
       WHERE CR.OBJSTATE = 'Active'
-     --  AND CR.AGREEMENT_ID = 70272
-     --  AND MB.MB_ID = 542
+    --   AND CR.AGREEMENT_ID = 70272
+    --   AND MB.MB_ID = 542
