@@ -1,0 +1,40 @@
+WITH SUBTAB AS (SELECT NF.FISCAL_NOTE_ID, BCO.ORDER_NO, BCO.ID, NF.FISCAL_NOTE_NO, NF.EMISSION_DATE, BCO.LINE_NO, BCO.REL_NO
+                FROM IFSLAF.C_BULLETIN_CUSTOMER_ORDER BCO 
+                JOIN IFSLAF.FISCAL_NOTE   NF              ON NF.C_FIRST_ORDER_NO = BCO.ORDER_NO --AND BCO.ID = 1
+                )
+
+    SELECT  IFSLAF.PERSON_INFO_API.Get_Name(IFSLAF.C_REC_AGREEMENT_INFO_API.Get_Agreement_Manager(CR.OPPORTUNITY_NO,CR.AGREEMENT_ID))                               GESTOR_CONTRATO, CR.AGREEMENT_ID,
+            (TRUNC(MB.END_MEASUREMENT_DATE) + 1)                                                                                                                    PERIODO_INI_MED, 
+            IFSLAF.C_REC_AGREEMENT_INFO_API.Get_Billing_Cutoff_Date(CR.OPPORTUNITY_NO,CR.AGREEMENT_ID)                                                              PERIODO_FINAL_MED,
+            To_Char(MB.END_MEASUREMENT_DATE,'MM')                                                                                                                   MES_MEDICAO,
+            (TRUNC(MB.END_MEASUREMENT_DATE) - 5)                                                                                                                    GAP_MEDICAO,
+            MB.MB_ID                                                                                                                                                ID_BOLETIM,
+            (SELECT SUM(MBM.VALUE_TO_MEASURE) 
+                  FROM IFSLAF.C_MEASUR_BULLETIN_MOTOR_AS MBM
+                WHERE MBM.MB_ID = MB.MB_ID
+                  AND MBM.CONTRACT = MB.CONTRACT)                                                                                                                   MED_ENVIADA,
+            (SELECT MIN(CBH.DATE_ENTERED) 
+                FROM IFSLAF.C_BULLETIN_HISTORY CBH
+                    WHERE CBH.MB_ID = MB.MB_ID)                                                                                                                     DT_ENVIO_MED,
+            (TO_DATE(IFSLAF.C_REC_AGREEMENT_INFO_CFP.Get_Cf$_Data_Real_Medicao(IFSLAF.C_REC_AGREEMENT_INFO_CFP.Get_Objkey(CR.OPPORTUNITY_NO,CR.AGREEMENT_ID))) + 5) PRAZO_FATURA,
+            MB.MANAGEMENT_STATUS                                                                                                                                    STATUS_GEREN_BM,
+            IFSLAF.C_MEASUR_BULLETIN_STATUS_API.Get_Description(MB.MANAGEMENT_STATUS)                                                                               DESC_STATUS_GEREN,
+            CR.AGREEMENT_MODALITY                                                                                                                                   MODALID_CONTRATO,
+            IFSLAF.CUSTOMER_ORDER_LINE_API.Get_Sale_Unit_Price(BCO.ORDER_NO,BCO.LINE_NO,BCO.REL_NO,BCO.LINE_ITEM_NO)                                                VAL_FATURADO,
+            CR.PAY_TERM_ID                                                                                                                                          COND_PAGTO,
+            IFSLAF.PAYMENT_TERM_API.Get_Description(CR.COMPANY,CR.PAY_TERM_ID)                                                                                      DESC_COND_PAGTO,
+            DECODE(CR.CF$_ACEITE_TACITO_BM_DB,1,'TRUE','FALSE')                                                                                                     ACEITE_TACITO,
+            NF.FISCAL_NOTE_NO                                                                                                                                       N_NOTA_FISCAL,
+            NF.EMISSION_DATE                                                                                                                                        DT_EMISSAO_NF,
+            (SELECT COUNT(*)
+              FROM IFSLAF.C_REC_AGREEMENT_RENTED_ASSET CREC
+                WHERE CREC.AGREEMENT_ID = CR.AGREEMENT_ID AND CREC.OPPORTUNITY_NO = CR.OPPORTUNITY_NO
+                  AND CREC.RENTED_ASSET = 'TRUE')                                                                                                                   QT_SERIAIS_LOCA,
+            IFSLAF.C_BULLETIN_ADDITIONAL_INFO_API.Get_Observation(MB.MB_ID,1)                                                                                       OBSERVACAO
+     FROM IFSLAF.C_RECURRENT_AGREEMENT_CFV CR
+     JOIN IFSLAF.C_MEASUREMENT_BULLETIN MB          ON CR.AGREEMENT_ID = MB.AGREEMENT_ID AND CR.OPPORTUNITY_NO = MB.OPPORTUNITY_NO
+     LEFT JOIN IFSLAF.C_BULLETIN_CUSTOMER_ORDER BCO ON BCO.MB_ID = MB.MB_ID
+     LEFT JOIN SUBTAB   NF                          ON NF.ORDER_NO = BCO.ORDER_NO AND NF.LINE_NO = BCO.LINE_NO AND NF.REL_NO = BCO.REL_NO
+      WHERE CR.OBJSTATE = 'Active'
+     --  AND CR.AGREEMENT_ID = 70272
+     --  AND MB.MB_ID = 542
