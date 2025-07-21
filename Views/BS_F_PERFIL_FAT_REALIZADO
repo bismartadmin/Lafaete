@@ -1,0 +1,32 @@
+SELECT
+    col.ORDER_NO AS N_Ordem, 
+    col.CATALOG_NO AS COD_MAT_VENDAS,
+    col.STATE AS Status_Linha,
+    sb.AMOUNT AS "Valor_Liq/Moeda",
+    sb.AMOUNT_INCL_TAX AS "Valor_Bruto/Moeda",
+    sb.STATE AS STATUS,
+    sb.DESCRIPTION AS Descrição,
+    sb.TOTAL_PERCENTAGE AS "Total(%)",
+    sb.APPROVAL_DATE AS Data_Titulo,
+    sb.APPROVAL_TYPE AS Tipo_Aprovação,
+    sb.STAGE as Etapa,
+    IFSLAF.Customer_Order_Inv_Head_API.Get_Invoice_No_By_Id(INVOICE_ID) as N_Titulo,
+    co.ORDER_NO as Numero_ordem_V,
+    co.CUSTOMER_NO as Cliente,
+    IFSLAF.Cust_Ord_Customer_API.Get_Name(co.CUSTOMER_NO) as Nome_cliente,
+    co.CONTRACT as Site,
+    co.AUTHORIZE_CODE as Coordenador,
+    co.CURRENCY_CODE as Moeda,
+    co.ORDER_ID as Tipo_ordem,
+    co.STATE as Status_Ordem_V
+FROM
+    IFSLAF.CUSTOMER_ORDER_LINE col
+JOIN
+    IFSLAF.ORDER_LINE_STAGED_BILLING sb
+    ON col.ORDER_NO = sb.ORDER_NO
+JOIN   
+    IFSLAF.CUSTOMER_ORDER  co
+    ON sb.ORDER_NO = co.ORDER_NO
+
+    where sb.STATE ='Aprovado'
+        ORDER BY col.LINE_NO, sb.LINE_NO
