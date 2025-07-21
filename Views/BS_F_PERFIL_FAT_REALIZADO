@@ -1,5 +1,7 @@
 SELECT
     col.ORDER_NO AS N_Ordem, 
+    col.line_no  AS N_LINHA,
+    col.REL_NO   AS N_LIBERACAO,
     col.CATALOG_NO AS COD_MAT_VENDAS,
     col.STATE AS Status_Linha,
     sb.AMOUNT AS "Valor_Liq/Moeda",
@@ -24,6 +26,9 @@ FROM
 JOIN
     IFSLAF.ORDER_LINE_STAGED_BILLING sb
     ON col.ORDER_NO = sb.ORDER_NO
+        AND col.LINE_NO = sb.LINE_NO
+        AND col.REL_NO = sb.REL_NO
+        AND col.LINE_ITEM_NO = sb.LINE_ITEM_NO    
 JOIN   
     IFSLAF.CUSTOMER_ORDER  co
     ON sb.ORDER_NO = co.ORDER_NO
